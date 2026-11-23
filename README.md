@@ -42,6 +42,8 @@ speech → Whisper (on our server) → text → Claude (interpreter) → typed o
 - Glasses page: status line, drawing (two 288 × 144 image tiles), read-back and warnings.
 - Tap on the glasses starts listening. It stops after 1.5 s of silence, on a second tap, or after 20 s.
 - Tap also accepts a warning. Double tap opens the system exit dialog.
+- Swipe turns the drawing: 2D side view with dimensions, then a 3D line view at 30°, 60°, 90° (end view), 120°, 150°.
+  The glasses show images only, so the 3D view turns in steps, one image per step.
 - Speech to text runs on the backend with faster-whisper (`base.en`, about 1 s per sentence on a laptop CPU).
 - `finish` makes `data/out/<session id>/shaft.step`, `shaft.dxf`, `shaft.pdf`.
 - Phone page `/s/<session id>`: a 3D view you can rotate with a finger (three.js), the 2D side view, downloads, and the human "Approve for review" step.
@@ -58,6 +60,8 @@ The interpreter has two adapters with the same prompt and the same JSON answer:
 The API adapter is tested with a fake client only. It has not been run against the real API yet (no key on the dev machine).
 
 ![The slice in the simulator](docs/img/slice-2-ask.png)
+
+![3D line view on the glasses](docs/img/glasses-3d-30.png)
 
 ## Quick start (one command)
 
@@ -149,7 +153,8 @@ Current mapping (simulator). It is checked again on real G2.
 | Tap (temple or R1 ring) | start listening / stop listening / accept a warning |
 | Double tap | system exit dialog (store rule) |
 | Voice: "undo", "finish" | undo the last change / build the files |
-| Swipe up, swipe down, long press | not used yet |
+| Swipe down / swipe up | next view / previous view (2D, then 3D at 30°, 60°, 90°, 120°, 150°) |
+| Long press | not used yet |
 
 ## Tests
 
