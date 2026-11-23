@@ -53,3 +53,9 @@ Each item has a safe default. We work with the default until we know more.
 31. **OAuth test mode.** While the consent screen is in "Testing", Google ends the sign-in after 7 days. Sign in again close to the demo, or publish the consent screen.
 32. **One account for everyone.** The backend uses one Google account. Per-user Drive sign-in through a pairing page is part of "Path to launch", not of the hackathon build.
 33. **Upload time.** The upload runs inside `finish`, so `finish` gets slower by the upload time. It is logged (`drive_upload` in the session log). Move it to the background if it is slow on the real account.
+
+## Added with the one-command start (Nov 23)
+
+34. **Docker build is not tested.** Docker Desktop did not finish starting on the dev machine, so `docker compose up --build` has never run. The Dockerfile is written from the known needs (OpenCascade system libraries, speech model inside the image). Test it before the README promise counts.
+35. **`start.sh` is not tested.** Only `scripts/start.ps1` ran (Windows): backend and app came up, and a sentence without an API key gave a clear error. The bash script needs a run on macOS or Linux.
+36. **Clean-machine test.** Planned for Nov 28: a fresh clone, only the README, on a machine without the dev tools.

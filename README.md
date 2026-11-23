@@ -81,6 +81,8 @@ the app page, for example `diameter thirty, forty long`. Say or type `finish` to
 Options: `-NoSimulator` / `--no-simulator`, and `-Docker` / `--docker` to run the backend in a
 container. Backend only: `docker compose up --build`.
 
+Tested so far: `scriptsstart.ps1` on Windows 11. The bash script and the Docker build are written but not run yet.
+
 ## Setup step by step
 
 Needs: Node.js 22 LTS (or newer), Python 3.11+.
