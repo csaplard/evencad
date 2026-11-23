@@ -46,3 +46,10 @@ Each item has a safe default. We work with the default until we know more.
 27. **No temperature 0.** The spec asks for temperature 0. Current models reject sampling parameters, so none is sent. Stability comes from the strict schema check, thinking off and low effort.
 28. **Plain JSON, not tool use.** The spec suggests tool use for structured output. Both adapters return plain JSON that Pydantic validates, so they stay identical. If the live run shows format errors, switch the API adapter to structured outputs (`output_config.format`).
 29. **Model choice.** Default `claude-haiku-5-5` for speed and cost. If it guesses instead of asking in the live golden run, try `claude-sonnet-5-5` through `CLAUDE_MODEL`.
+
+## Added with Google Drive (Nov 23)
+
+30. **Real Drive run is still open.** The upload is tested with a fake Drive service. Needed from Dániel: a Google Cloud OAuth client (Desktop app) and one sign-in with `python -m tools.drive_auth` (README, "Google Drive").
+31. **OAuth test mode.** While the consent screen is in "Testing", Google ends the sign-in after 7 days. Sign in again close to the demo, or publish the consent screen.
+32. **One account for everyone.** The backend uses one Google account. Per-user Drive sign-in through a pairing page is part of "Path to launch", not of the hackathon build.
+33. **Upload time.** The upload runs inside `finish`, so `finish` gets slower by the upload time. It is logged (`drive_upload` in the session log). Move it to the background if it is slow on the real account.

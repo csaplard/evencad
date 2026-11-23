@@ -46,7 +46,9 @@ speech → Whisper (on our server) → text → Claude (interpreter) → typed o
 - `finish` makes `data/out/<session id>/shaft.step`, `shaft.dxf`, `shaft.pdf`.
 - Phone page `/s/<session id>`: downloads and the human "Approve for review" step.
 
-Not built yet: Google Drive upload, real G2 test.
+- `finish` also copies the three files to a Google Drive folder (when Drive is set up). Approval replaces the DXF and PDF there.
+
+Not done yet: real G2 test, one-command start.
 
 The interpreter has two adapters with the same prompt and the same JSON answer:
 
@@ -73,6 +75,19 @@ cp .env.example .env
 
 Open `http://localhost:8000/docs` for the API. Type a sentence in the app page (below), or call
 `POST /session` and `POST /session/{id}/utterance` with `{"text": "diameter thirty, forty long"}`.
+
+### Google Drive (optional)
+
+The backend uploads with your own Google account. The glasses app never sees Google.
+The app asks only for the `drive.file` scope: it can see only the files it creates.
+
+1. In the Google Cloud Console: create a project, enable the **Google Drive API**, set up the OAuth consent screen (add yourself as a test user), and create an **OAuth client ID** of type **Desktop app**.
+2. Download the client file to `data/google_client.json` (the `data/` folder is not in git).
+3. Run `.venv/Scripts/python -m tools.drive_auth`. A browser opens. Sign in and allow access.
+4. The tool creates the folder "EvenCAD drawings" and prints a `GOOGLE_DRIVE_FOLDER_ID=...` line. Put it into `.env`.
+5. Restart the backend. Each finished session gets its own sub-folder with `shaft.step`, `shaft.dxf`, `shaft.pdf`.
+
+If Drive fails, the drawing is still finished and the files stay downloadable from the phone page.
 
 ### Glasses app in the simulator
 
@@ -121,6 +136,7 @@ Current mapping (simulator). It is checked again on real G2.
 
 - Audio is never stored. One sentence is held in memory, turned into text, and dropped. A test checks that no audio reaches the disk.
 - The microphone is open only while the display says "Listening".
+- Google Drive: scope `drive.file` only. The token stays on the server in `data/` (not in git).
 - No secrets in the glasses app. All external calls go through our backend.
 - Every PDF carries "DRAFT – requires engineering approval" until a human approves it.
 - Tests and the demo use made-up parts only.
@@ -144,6 +160,7 @@ Only the specification ([EVENCAD_SPEC.md](EVENCAD_SPEC.md)). No code.
 | Pillow | glasses image | MIT-CMU |
 | faster-whisper (CTranslate2, Whisper `base.en` model) | speech to text on the server | MIT |
 | `anthropic` (official SDK) | interpreter, default adapter | MIT |
+| google-api-python-client, google-auth, google-auth-oauthlib | Google Drive upload | Apache-2.0 |
 | pytest, httpx, pypdf | tests | MIT, BSD-3-Clause, BSD-3-Clause |
 | Claude Code CLI | interpreter during development only | Anthropic terms |
 

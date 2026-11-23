@@ -17,6 +17,7 @@ export interface SessionState {
   finished: boolean
   files: Record<string, string>
   phone_page: string
+  drive: { status: 'ok' | 'error'; folder_url?: string; message?: string } | null
   heard: string | null
   ask: string | null
   error: string | null

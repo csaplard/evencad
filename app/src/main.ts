@@ -111,7 +111,10 @@ function show(next: SessionState) {
   const problem = empty ? undefined : (validation.errors[0] ?? validation.warnings[0])
   if (problem) lines.push(`${validation.errors.length ? 'Error' : 'Warning'}: ${problem.text}`)
   if (needs_confirm) lines.push('Tap to accept the warning and finish')
-  else if (finished) lines.push(`DRAFT files ready · code ${next.id.slice(-6)}`)
+  else if (finished) {
+    const saved = next.drive?.status === 'ok' ? ' · saved to Drive' : next.drive?.status === 'error' ? ' · Drive failed' : ''
+    lines.push(`DRAFT files ready${saved} · code ${next.id.slice(-6)}`)
+  }
   setText(INFO, lines.join('\n'))
 
   const drawingKey = JSON.stringify(next.spec.segments)
