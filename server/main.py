@@ -21,7 +21,7 @@ from pydantic import BaseModel, Field
 from server.ai.interpreter import Interpreter, InterpreterError, get_interpreter
 from server.ai.stt import MAX_WAV_BYTES, AudioError, SttError, SttProvider, get_stt, wav_to_pcm
 from server.core.guide import next_step, parse_number
-from server.core.ops import AddSegment, Finish, OpError, Undo, apply_ops
+from server.core.ops import AddSegment, Finish, OpError, Undo, active_after, apply_ops
 from server.core.readback import readback
 from server.core.validation import validate
 from server.drive import DriveError, DriveUploader, get_uploader
@@ -125,6 +125,11 @@ def create_app(
             session.record("drive_error", message=str(e))
             log.warning("drive upload failed for %s: %s", sid, e)
 
+    def active_of(session: Session) -> Optional[int]:
+        """The marked segment, or None when it no longer exists."""
+        n = session.active_segment
+        return n if n and n <= len(session.spec.segments) else None
+
     def state(session: Session, **extra) -> dict:
         """The one answer shape for every session call."""
         spec = session.spec
@@ -138,6 +143,7 @@ def create_app(
             "readback": readback(spec),
             "validation": report.model_dump(),
             "can_undo": bool(session.history) or session.pending_diameter is not None,
+            "active_segment": active_of(session),
             "guide": None if session.finished else next_step(spec, session.pending_diameter),
             "finished": session.finished,
             "files": files,
@@ -161,6 +167,7 @@ def create_app(
             return "Nothing to undo"
         turn = session.history.pop()
         session.spec = type(session.spec).model_validate(turn.before)
+        session.active_segment = turn.active_before
         session.finished = False
         session.record("undo", undone=turn.ops)
         return None
@@ -246,7 +253,8 @@ def create_app(
                     session.record("rejected", utterance=text, ops=ops_json, reason=str(e), source="guide")
                     store.save(session)
                     return state(session, error=str(e), **extra)
-                session.history.append(Turn(at=now_iso(), utterance=text, ops=ops_json, before=session.spec.model_dump(mode="json")))
+                session.history.append(Turn(at=now_iso(), utterance=text, ops=ops_json, before=session.spec.model_dump(mode="json"), active_before=session.active_segment))
+                session.active_segment = active_after(session.spec, [op], session.active_segment)
                 session.spec = new_spec
                 session.pending_diameter = None
                 session.record("applied", utterance=text, ops=ops_json, source="guide")
@@ -275,7 +283,8 @@ def create_app(
                 session.record("rejected", utterance=text, ops=ops_json, reason=str(e))
                 store.save(session)
                 return state(session, error=str(e), **extra)
-            session.history.append(Turn(at=now_iso(), utterance=text, ops=ops_json, before=session.spec.model_dump(mode="json")))
+            session.history.append(Turn(at=now_iso(), utterance=text, ops=ops_json, before=session.spec.model_dump(mode="json"), active_before=session.active_segment))
+            session.active_segment = active_after(session.spec, changes, session.active_segment)
             session.spec = new_spec
             session.finished = False
             session.pending_diameter = None  # a full sentence ends the half-entered segment
@@ -315,15 +324,16 @@ def create_app(
 
         No `view`: the 2D side view with dimensions. view=<degrees>: the 3D line view turned by that angle.
         """
-        spec = load(sid).spec
+        session = load(sid)
+        spec, active = session.spec, active_of(session)
         if view is None:
-            png = glasses_png(spec) if tile is None else glasses_tiles(spec)[tile]
+            png = glasses_png(spec, active_segment=active, highlight=True) if tile is None else glasses_tiles(spec, active, True)[tile]
         elif tile is None:
             buf = io.BytesIO()
-            render_glasses_3d(spec, view).save(buf, format="PNG")
+            render_glasses_3d(spec, view, active_segment=active).save(buf, format="PNG")
             png = buf.getvalue()
         else:
-            png = glasses_3d_tiles(spec, view)[tile]
+            png = glasses_3d_tiles(spec, view, active)[tile]
         return Response(content=png, media_type="image/png", headers={"Cache-Control": "no-store"})
 
     @app.get("/session/{sid}/files/{kind}")

@@ -14,7 +14,7 @@ from typing import Optional
 from PIL import Image, ImageDraw
 
 from server.core.spec import ShaftSpec
-from server.draw.glasses import BAND, FONT_PX, LINE, _font
+from server.draw.glasses import BAND, FONT_PX, LINE, _font, segment_span
 from server.draw.model import profile
 
 PITCH_DEG = 20  # the view looks down a little, so circles show as ellipses
@@ -61,8 +61,14 @@ def _hull(points: list[tuple[float, float]]) -> list[tuple[float, float]]:
     return half(pts) + half(reversed(pts))
 
 
-def render_glasses_3d(spec: ShaftSpec, yaw_deg: float, size: tuple[int, int] = BAND, pitch_deg: float = PITCH_DEG) -> Image.Image:
-    """Return a mode "L" image with only 0 and 255 pixels."""
+def render_glasses_3d(
+    spec: ShaftSpec, yaw_deg: float, size: tuple[int, int] = BAND, pitch_deg: float = PITCH_DEG,
+    active_segment: Optional[int] = None,
+) -> Image.Image:
+    """Return a mode "L" image with only 0 and 255 pixels.
+
+    `active_segment` (1-based) is drawn with thicker lines. One segment alone is never marked.
+    """
     w, h = size
     img = Image.new("1", size, 0)
     g = ImageDraw.Draw(img)
@@ -78,6 +84,12 @@ def render_glasses_3d(spec: ShaftSpec, yaw_deg: float, size: tuple[int, int] = B
     if math.sin(math.radians(yaw_deg)) > 0:
         pts = pts[::-1]
     rings = [_circle(project, x, r) for x, r in pts]
+    span = segment_span(spec, active_segment) if len(spec.segments) > 1 else None
+
+    def is_active(a, b) -> bool:
+        """True for a band that is part of the active segment (its body or its chamfers)."""
+        lo, hi = sorted((a[0], b[0]))
+        return bool(span) and hi - lo > 1e-9 and lo >= span[0] - 1e-9 and hi <= span[1] + 1e-9
 
     # Fit the whole picture into the image.
     xs = [p[0] for ring in rings for p in ring]
@@ -91,26 +103,27 @@ def render_glasses_3d(spec: ShaftSpec, yaw_deg: float, size: tuple[int, int] = B
     def px(p):
         return (round(w / 2 + label_w / 4 + (p[0] - cx) * scale), round(h / 2 + (p[1] - cy) * scale))
 
-    def outline(shape, fill):
+    def outline(shape, fill, width=LINE):
         if len(shape) >= 3:
             g.polygon(shape, fill=fill)
         if len(shape) >= 2:
-            g.line(shape + [shape[0]], fill=1, width=LINE, joint="curve")
+            g.line(shape + [shape[0]], fill=1, width=width, joint="curve")
 
-    for far, near in zip(rings, rings[1:]):
-        outline([px(p) for p in _hull(far + near)], fill=0)  # the band covers what is behind it
+    for i, (far, near) in enumerate(zip(rings, rings[1:])):
+        width = LINE + 2 if is_active(pts[i], pts[i + 1]) else LINE
+        outline([px(p) for p in _hull(far + near)], fill=0, width=width)  # the band covers what is behind it
         if len(near) > 1:
-            outline([px(p) for p in near], fill=None)  # its near edge is a visible circle
+            outline([px(p) for p in near], fill=None, width=width)  # its near edge is a visible circle
 
     g.text((4, 2), f"3D {round(yaw_deg)}°", fill=1, font=font)
     return img.convert("L")
 
 
-def glasses_3d_tiles(spec: ShaftSpec, yaw_deg: float) -> list[bytes]:
+def glasses_3d_tiles(spec: ShaftSpec, yaw_deg: float, active_segment: Optional[int] = None) -> list[bytes]:
     """The band cut into two 288 x 144 PNGs: left tile, right tile."""
     import io
 
-    band = render_glasses_3d(spec, yaw_deg)
+    band = render_glasses_3d(spec, yaw_deg, active_segment=active_segment)
     tiles = []
     for i in range(2):
         buf = io.BytesIO()

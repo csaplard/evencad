@@ -29,6 +29,7 @@ class Turn(BaseModel):
     utterance: Optional[str] = None
     ops: list[dict]
     before: dict
+    active_before: Optional[int] = None  # the marked segment before it
 
 
 class Session(BaseModel):
@@ -37,6 +38,7 @@ class Session(BaseModel):
     log: list[dict] = Field(default_factory=list)  # everything that happened, never shortened
     finished: bool = False
     drive: Optional[dict] = None  # result of the last Google Drive upload
+    active_segment: Optional[int] = None  # 1-based: the segment the last change touched
     pending_diameter: Optional[float] = None  # guided measuring: diameter given, length still missing
 
     def record(self, event: str, **data) -> None:

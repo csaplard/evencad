@@ -73,3 +73,8 @@ Each item has a safe default. We work with the default until we know more.
 45. **Bare numbers skip the model.** `server/core/guide.py` reads a bare number with strict rules. Two numbers ("thirty forty"), a doubt ("15 or 50") or any other word go to the interpreter as before. Fifteen/fifty can still be misheard by speech recognition. The display shows the value (`Ø50 length?`), and undo drops it.
 46. **Listening starts again by itself after a diameter.** The status line shows `Listening…`. It stops after 1.5 s of silence, on a tap, or after 20 s. Check on real G2 that this feels right. If not, remove the one line in `stopListening` in `app/src/main.ts`.
 47. **Short words and Whisper.** One-word answers ("sixty") were tested as typed text only. Test them by voice. If recognition is weak, try `STT_MODEL=small.en`.
+
+## Added with the active segment mark (Nov 23)
+
+48. **Thicker lines on the glasses only.** The mark is in the glasses images. The DXF and the PDF do not have it. Check on real G2 that 5 px against 2 px is easy to see. The G2 has 16 grey levels, so a dimmer rest of the part is another option.
+49. **After a delete there is no mark.** The deleted segment is gone, so nothing is marked until the next change.

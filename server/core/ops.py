@@ -167,6 +167,33 @@ def apply_op(spec: ShaftSpec, op: Op) -> ShaftSpec:
     return new
 
 
+def active_after(spec: ShaftSpec, ops: list[Op], current: Optional[int]) -> Optional[int]:
+    """The 1-based segment that the operations touched last. The display marks it.
+
+    `spec` is the shaft before the operations. `current` is the mark before them.
+    """
+    active = current
+    for op in ops:
+        before = spec
+        spec = apply_op(spec, op)
+        n = len(spec.segments)
+        if isinstance(op, AddSegment):
+            active = op.at or n
+        elif isinstance(op, EditSegment):
+            active = _position(spec, op.index) + 1
+        elif isinstance(op, DeleteSegment):
+            active = None
+        elif isinstance(op, SetChamfer):
+            if op.where == "left_end":
+                active = 1
+            elif op.where == "right_end":
+                active = n
+            else:
+                left, right = before.segments[op.where - 1], before.segments[op.where]
+                active = op.where if left.diameter > right.diameter else op.where + 1
+    return active
+
+
 def apply_ops(spec: ShaftSpec, ops: list[Op]) -> ShaftSpec:
     """Apply all operations, or none (raises OpError)."""
     for op in ops:

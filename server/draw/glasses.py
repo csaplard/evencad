@@ -23,8 +23,22 @@ def _font(size: int = FONT_PX):
     return ImageFont.load_default(size=size)
 
 
-def render_glasses(spec: ShaftSpec, size: tuple[int, int] = BAND, active_segment: Optional[int] = None) -> Image.Image:
-    """Return a mode "L" image with only 0 and 255 pixels."""
+def segment_span(spec: ShaftSpec, number: Optional[int]) -> Optional[tuple[float, float, float]]:
+    """(x start, x end, radius) of segment `number` (1-based). None if there is no such segment."""
+    if not number or not 1 <= number <= len(spec.segments):
+        return None
+    x = sum(s.length for s in spec.segments[: number - 1])
+    seg = spec.segments[number - 1]
+    return (x, x + seg.length, seg.diameter / 2)
+
+
+def render_glasses(
+    spec: ShaftSpec, size: tuple[int, int] = BAND, active_segment: Optional[int] = None, highlight: bool = False
+) -> Image.Image:
+    """Return a mode "L" image with only 0 and 255 pixels.
+
+    `highlight`: draw the active segment with thicker lines. One segment alone is never marked.
+    """
     w, h = size
     img = Image.new("1", size, 0)
     g = ImageDraw.Draw(img)
@@ -56,6 +70,12 @@ def render_glasses(spec: ShaftSpec, size: tuple[int, int] = BAND, active_segment
             g.line([a, b], fill=1, width=LINE)
         else:
             _dash_dot(g, 4, w - 4, a[1])
+
+    span = segment_span(spec, active_segment) if highlight and len(spec.segments) > 1 else None
+    if span:
+        x1, x2, r = span
+        for y in (r, -r):
+            g.line([px((x1, y)), px((x2, y))], fill=1, width=LINE + 3)
 
     half = round(drawing.max_diameter * scale / 2)
     y_len = y0 + half + 5  # first row under the part
@@ -110,15 +130,15 @@ def _span(g, font, d: Dim, xa: int, xb: int, y: int, w: int, prefix: str = ""):
         g.line([(xa, mid_y), (xb, mid_y)], fill=1, width=1)
 
 
-def glasses_png(spec: ShaftSpec, size: tuple[int, int] = BAND, active_segment: Optional[int] = None) -> bytes:
+def glasses_png(spec: ShaftSpec, size: tuple[int, int] = BAND, active_segment: Optional[int] = None, highlight: bool = False) -> bytes:
     buf = io.BytesIO()
-    render_glasses(spec, size, active_segment).save(buf, format="PNG")
+    render_glasses(spec, size, active_segment, highlight).save(buf, format="PNG")
     return buf.getvalue()
 
 
-def glasses_tiles(spec: ShaftSpec, active_segment: Optional[int] = None) -> list[bytes]:
+def glasses_tiles(spec: ShaftSpec, active_segment: Optional[int] = None, highlight: bool = False) -> list[bytes]:
     """The band cut into two 288 x 144 PNGs: left tile, right tile."""
-    band = render_glasses(spec, BAND, active_segment)
+    band = render_glasses(spec, BAND, active_segment, highlight)
     tiles = []
     for i in range(2):
         buf = io.BytesIO()

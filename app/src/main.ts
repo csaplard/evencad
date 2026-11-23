@@ -130,7 +130,7 @@ function show(next: SessionState) {
 
 function redraw() {
   if (!state) return
-  const drawingKey = JSON.stringify([state.spec.segments, currentView()])
+  const drawingKey = JSON.stringify([state.spec.segments, state.active_segment, currentView()])
   if (drawingKey !== lastDrawn) {
     lastDrawn = drawingKey
     pushDrawing(state.id, currentView())
