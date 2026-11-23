@@ -4,6 +4,7 @@ Run:  uvicorn server.main:app --reload --port 8000
 """
 
 import html
+import io
 import logging
 import os
 import time
@@ -24,6 +25,7 @@ from server.core.readback import readback
 from server.core.validation import validate
 from server.drive import DriveError, DriveUploader, get_uploader
 from server.draw.glasses import glasses_png, glasses_tiles
+from server.draw.glasses3d import YAW_STEPS, glasses_3d_tiles, render_glasses_3d
 from server.draw.model import profile
 from server.export import FILE_NAMES, export_all, rebuild_sheets
 from server.sessions import Session, SessionStore, Turn, now_iso
@@ -141,6 +143,7 @@ def create_app(
             "files": files,
             "drive": session.drive if session.finished else None,
             "phone_page": f"/s/{spec.id}",
+            "views_3d": list(YAW_STEPS),
             "heard": None,
             "ask": None,
             "error": None,
@@ -272,10 +275,24 @@ def create_app(
         return state(session, **extra)
 
     @app.get("/session/{sid}/render")
-    def render(sid: str, tile: Optional[int] = Query(default=None, ge=0, le=1)):
-        """Glasses image. No `tile`: the 576x144 band. tile=0 / tile=1: its 288x144 halves."""
+    def render(
+        sid: str,
+        tile: Optional[int] = Query(default=None, ge=0, le=1),
+        view: Optional[int] = Query(default=None, ge=0, le=180),
+    ):
+        """Glasses image. No `tile`: the 576x144 band. tile=0 / tile=1: its 288x144 halves.
+
+        No `view`: the 2D side view with dimensions. view=<degrees>: the 3D line view turned by that angle.
+        """
         spec = load(sid).spec
-        png = glasses_png(spec) if tile is None else glasses_tiles(spec)[tile]
+        if view is None:
+            png = glasses_png(spec) if tile is None else glasses_tiles(spec)[tile]
+        elif tile is None:
+            buf = io.BytesIO()
+            render_glasses_3d(spec, view).save(buf, format="PNG")
+            png = buf.getvalue()
+        else:
+            png = glasses_3d_tiles(spec, view)[tile]
         return Response(content=png, media_type="image/png", headers={"Cache-Control": "no-store"})
 
     @app.get("/session/{sid}/files/{kind}")

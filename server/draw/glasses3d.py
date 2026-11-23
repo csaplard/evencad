@@ -1,0 +1,119 @@
+"""3D line view of the shaft for the glasses.
+
+The glasses have no 3D engine. They show images only, and one refresh takes about
+a second on the device. So the view turns in steps: each step is one new image.
+
+The picture is a hidden-line drawing made with the painter's method. The shaft is a
+row of coaxial bands. They are drawn from far to near as black shapes with a white
+outline, so nearer parts cover the parts behind them.
+"""
+
+import math
+from typing import Optional
+
+from PIL import Image, ImageDraw
+
+from server.core.spec import ShaftSpec
+from server.draw.glasses import BAND, FONT_PX, LINE, _font
+from server.draw.model import profile
+
+PITCH_DEG = 20  # the view looks down a little, so circles show as ellipses
+YAW_STEPS = (30, 60, 90, 120, 150)  # 90 = end view
+CIRCLE_POINTS = 48
+
+
+def _projector(yaw_deg: float, pitch_deg: float, length: float):
+    cy, sy = math.cos(math.radians(yaw_deg)), math.sin(math.radians(yaw_deg))
+    cp, sp = math.cos(math.radians(pitch_deg)), math.sin(math.radians(pitch_deg))
+
+    def project(x: float, y: float, z: float) -> tuple[float, float]:
+        x -= length / 2
+        x1 = x * cy + z * sy
+        z1 = -x * sy + z * cy
+        return (x1, -(y * cp - z1 * sp))  # screen x, screen y (down is positive)
+
+    return project
+
+
+def _circle(project, x: float, r: float) -> list[tuple[float, float]]:
+    if r <= 0:
+        return [project(x, 0, 0)]
+    return [
+        project(x, r * math.cos(2 * math.pi * i / CIRCLE_POINTS), r * math.sin(2 * math.pi * i / CIRCLE_POINTS))
+        for i in range(CIRCLE_POINTS)
+    ]
+
+
+def _hull(points: list[tuple[float, float]]) -> list[tuple[float, float]]:
+    """Convex hull (monotone chain). The outline of a band is the hull of its two end circles."""
+    pts = sorted(set(points))
+    if len(pts) <= 2:
+        return pts
+
+    def half(seq):
+        out: list[tuple[float, float]] = []
+        for p in seq:
+            while len(out) >= 2 and (out[-1][0] - out[-2][0]) * (p[1] - out[-2][1]) - (out[-1][1] - out[-2][1]) * (p[0] - out[-2][0]) <= 0:
+                out.pop()
+            out.append(p)
+        return out[:-1]
+
+    return half(pts) + half(reversed(pts))
+
+
+def render_glasses_3d(spec: ShaftSpec, yaw_deg: float, size: tuple[int, int] = BAND, pitch_deg: float = PITCH_DEG) -> Image.Image:
+    """Return a mode "L" image with only 0 and 255 pixels."""
+    w, h = size
+    img = Image.new("1", size, 0)
+    g = ImageDraw.Draw(img)
+    font = _font()
+    if not spec.segments or spec.total_length <= 0 or spec.max_diameter <= 0:
+        text = "Say a diameter and a length"
+        g.text(((w - g.textlength(text, font=font)) / 2, (h - FONT_PX) / 2), text, fill=1, font=font)
+        return img.convert("L")
+
+    pts = profile(spec)
+    project = _projector(yaw_deg, pitch_deg, spec.total_length)
+    # Far to near: the end of the shaft that points away from the viewer comes first.
+    if math.sin(math.radians(yaw_deg)) > 0:
+        pts = pts[::-1]
+    rings = [_circle(project, x, r) for x, r in pts]
+
+    # Fit the whole picture into the image.
+    xs = [p[0] for ring in rings for p in ring]
+    ys = [p[1] for ring in rings for p in ring]
+    margin = 8
+    label_w = 70  # room for the view label in the top left corner
+    span_x, span_y = max(xs) - min(xs) or 1, max(ys) - min(ys) or 1
+    scale = min((w - 2 * margin - label_w) / span_x, (h - 2 * margin) / span_y)
+    cx, cy = (max(xs) + min(xs)) / 2, (max(ys) + min(ys)) / 2
+
+    def px(p):
+        return (round(w / 2 + label_w / 4 + (p[0] - cx) * scale), round(h / 2 + (p[1] - cy) * scale))
+
+    def outline(shape, fill):
+        if len(shape) >= 3:
+            g.polygon(shape, fill=fill)
+        if len(shape) >= 2:
+            g.line(shape + [shape[0]], fill=1, width=LINE, joint="curve")
+
+    for far, near in zip(rings, rings[1:]):
+        outline([px(p) for p in _hull(far + near)], fill=0)  # the band covers what is behind it
+        if len(near) > 1:
+            outline([px(p) for p in near], fill=None)  # its near edge is a visible circle
+
+    g.text((4, 2), f"3D {round(yaw_deg)}°", fill=1, font=font)
+    return img.convert("L")
+
+
+def glasses_3d_tiles(spec: ShaftSpec, yaw_deg: float) -> list[bytes]:
+    """The band cut into two 288 x 144 PNGs: left tile, right tile."""
+    import io
+
+    band = render_glasses_3d(spec, yaw_deg)
+    tiles = []
+    for i in range(2):
+        buf = io.BytesIO()
+        band.crop((i * 288, 0, (i + 1) * 288, 144)).save(buf, format="PNG")
+        tiles.append(buf.getvalue())
+    return tiles
