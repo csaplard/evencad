@@ -11,12 +11,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Query, Response
+from fastapi import FastAPI, HTTPException, Query, Request, Response
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel, Field
 
 from server.ai.interpreter import Interpreter, InterpreterError, get_interpreter
+from server.ai.stt import MAX_WAV_BYTES, AudioError, SttError, SttProvider, get_stt, wav_to_pcm
 from server.core.ops import Finish, OpError, Undo, apply_ops
 from server.core.readback import readback
 from server.core.validation import validate
@@ -57,11 +59,15 @@ def _cors_origins() -> list[str]:
     return [o.strip() for o in raw.split(",") if o.strip()] or ["*"]
 
 
-def create_app(data_dir: Optional[Path] = None, interpreter: Optional[Interpreter] = None) -> FastAPI:
+def create_app(
+    data_dir: Optional[Path] = None,
+    interpreter: Optional[Interpreter] = None,
+    stt: Optional[SttProvider] = None,
+) -> FastAPI:
     _load_env_file()
     data_dir = Path(data_dir or os.environ.get("DATA_DIR", "data"))
     store = SessionStore(data_dir)
-    holder = {"interpreter": interpreter}
+    holder = {"interpreter": interpreter, "stt": stt}
 
     app = FastAPI(title="EvenCAD", version="0.2.0")
 
@@ -85,6 +91,11 @@ def create_app(data_dir: Optional[Path] = None, interpreter: Optional[Interprete
         if holder["interpreter"] is None:
             holder["interpreter"] = get_interpreter()
         return holder["interpreter"]
+
+    def the_stt() -> SttProvider:
+        if holder["stt"] is None:
+            holder["stt"] = get_stt()
+        return holder["stt"]
 
     def state(session: Session, **extra) -> dict:
         """The one answer shape for every session call."""
@@ -144,16 +155,49 @@ def create_app(data_dir: Optional[Path] = None, interpreter: Optional[Interprete
 
     @app.post("/session/{sid}/utterance")
     def utterance(sid: str, body: UtteranceIn):
+        return handle_text(load(sid), body.text.strip(), {})
+
+    @app.post("/session/{sid}/audio")
+    async def audio(sid: str, request: Request):
+        """One spoken sentence as a WAV body (16 kHz, 16-bit, mono).
+
+        The audio stays in memory. It is not written to disk and not kept after STT.
+        """
         session = load(sid)
-        text = body.text.strip()
+        declared = request.headers.get("content-length")
+        if declared and declared.isdigit() and int(declared) > MAX_WAV_BYTES:
+            raise HTTPException(status_code=413, detail="Recording is too long")
+        data = await request.body()
+        try:
+            pcm = wav_to_pcm(data)
+        except AudioError as e:
+            raise HTTPException(status_code=400, detail=str(e)) from e
+        del data
+
+        def work():
+            t0 = time.perf_counter()
+            try:
+                text = the_stt().transcribe(pcm)
+            except SttError as e:
+                raise HTTPException(status_code=503, detail=str(e)) from e
+            timing = {"audio_s": round(len(pcm) / 32000, 1), "stt": round((time.perf_counter() - t0) * 1000)}
+            if not text.strip():
+                return state(session, ask="I did not hear anything", timing_ms=timing)
+            return handle_text(session, text.strip()[:500], timing)
+
+        return await run_in_threadpool(work)
+
+    def handle_text(session: Session, text: str, timing: dict) -> dict:
+        """Text -> interpreter -> operations -> new state. Shared by typed text and voice."""
+        sid = session.spec.id
         t0 = time.perf_counter()
         try:
             result = the_interpreter().interpret(session.spec, text)
         except InterpreterError as e:
             raise HTTPException(status_code=503, detail=str(e)) from e
-        interpret_ms = round((time.perf_counter() - t0) * 1000)
-        log.info("turn %s interpret_ms=%s", sid, interpret_ms)
-        extra: dict = {"heard": text, "timing_ms": {"interpret": interpret_ms}}
+        timing["interpret"] = round((time.perf_counter() - t0) * 1000)
+        log.info("turn %s timing_ms=%s", sid, timing)
+        extra: dict = {"heard": text, "timing_ms": timing}
 
         if result.ask:
             session.record("ask", utterance=text, ask=result.ask)
