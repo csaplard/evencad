@@ -25,3 +25,10 @@ Each item has a safe default. We work with the default until we know more.
 15. **Hungarian.** `supported_languages` has no `hu`. This is only the store language. Hungarian dictation (stretch) is still possible through STT.
 16. **Session id.** The spec example is `s_20261123_001`. The phone page `/s/{id}` must not be guessable. Default: `s_<date>_<6 random hex>`. A short pairing code for the DONE screen comes later.
 17. **Node 26.** The SDK says Node 20 or 22+. It works on 26.4 here. The README will recommend Node 22 LTS.
+
+## Added after the slice (Nov 23)
+
+18. **Diameter dimensions on the sheet.** They are real DIMENSION entities, drawn across each segment. The dimension line crosses the centre line. Moving them outside the part is polish for Nov 27.
+19. **Interpreter speed.** The CLI adapter takes about 8 seconds per sentence. This is expected (spec 4a). Speed is measured only with the API adapter.
+20. **Tap mapping.** Today tap only accepts a warning. With voice, tap will start and stop listening. Swipe is still free.
+21. **Session code on the DONE screen.** The glasses show the last 6 characters of the session id. A real pairing flow (short code → phone page) is still open.

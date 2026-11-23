@@ -67,7 +67,6 @@ def build_dxf(spec: ShaftSpec) -> DxfDoc:
     half = drawing.max_diameter * scale / 2
     y_len = oy - half - 12
     y_all = y_len - 10
-    dia_rank = 0
     for d in drawing.dims:
         a, b = pt(d.p1), pt(d.p2)
         if d.kind == "length":
@@ -76,8 +75,7 @@ def build_dxf(spec: ShaftSpec) -> DxfDoc:
             dim = msp.add_linear_dim(base=(a[0], y_all), p1=a, p2=b, dimstyle="EZDXF", override=override, dxfattribs=dim_attribs)
         else:
             # Diameter: a vertical dimension across the segment, placed above the part
-            # so the text stays readable. Staggered so neighbours do not collide.
-            dia_rank += 1
+            # so the text stays readable.
             x = a[0]
             dim = msp.add_linear_dim(
                 base=(x, oy), p1=a, p2=b, angle=90, text="Ø<>", dimstyle="EZDXF",
