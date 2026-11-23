@@ -140,6 +140,9 @@ def draw_shaft(spec: ShaftSpec, style: Optional[Style] = None) -> Drawing:
             if n > 1:
                 d.dims.append(Dim("length", (x, -r), (x + s.length, -r), s.length, fmt(s.length), i))
             mid = x + s.length / 2
+            for slot in d.slots:
+                if slot.segment == i and slot.x2 < x + s.length:
+                    mid = (slot.x2 + x + s.length) / 2  # beside the keyway, not across it
             d.dims.append(Dim("diameter", (mid, -r), (mid, r), s.diameter, "Ø" + fmt(s.diameter), i))
         x += s.length
     r_max = d.max_diameter / 2
