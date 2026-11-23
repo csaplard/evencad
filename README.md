@@ -2,7 +2,7 @@
 
 > Say it. See it. Sign it.
 
-**Status: day 1, thin slice works in the simulator.** Sections marked *TODO* are filled in during the build week.
+**Status (Nov 23): the full flow works in the simulator.** Not tested yet: real G2 glasses, the real Anthropic API, a real Google Drive account. See [Known limits](#known-limits).
 
 Built for the "Heads Up: Even Realities Hackathon" (Nov 23–29, 2026).
 Track: **04 · AI Assistants & Work**.
@@ -59,7 +59,29 @@ The API adapter is tested with a fake client only. It has not been run against t
 
 ![The slice in the simulator](docs/img/slice-2-ask.png)
 
-## Setup
+## Quick start (one command)
+
+Needs Node.js 22 LTS or newer, and Python 3.11+ (or Docker).
+
+```bash
+# Windows
+powershell -ExecutionPolicy Bypass -File scripts\start.ps1
+
+# macOS / Linux
+./scripts/start.sh
+```
+
+The script creates `.env` from `.env.example`, installs everything, and starts the backend
+(port 8000), the app dev server (port 5173) and the simulator. The first run takes a few minutes.
+Then add your `ANTHROPIC_API_KEY` to `.env` and start it again.
+
+In the simulator: **Click** = tap. Tap, speak into the PC microphone, wait. Or type a sentence in
+the app page, for example `diameter thirty, forty long`. Say or type `finish` to get the files.
+
+Options: `-NoSimulator` / `--no-simulator`, and `-Docker` / `--docker` to run the backend in a
+container. Backend only: `docker compose up --build`.
+
+## Setup step by step
 
 Needs: Node.js 22 LTS (or newer), Python 3.11+.
 
@@ -103,11 +125,14 @@ Script a session without typing: `evenhub-simulator "http://localhost:5173/?say=
 
 ### Glasses app on real G2
 
-*TODO* (`npx evenhub qr --url http://<LAN-IP>:5173`, then scan in the Even app.)
+Not tested yet. The planned steps, from the Even Hub docs:
 
-### One-command start
-
-*TODO* (Docker or a script.)
+1. The phone must reach the backend. Put the backend address into `app/.env.local` as
+   `VITE_BACKEND_URL=...` and into the `whitelist` in `app/app.json` (full origin, for example
+   `https://evencad.example.com`). Plain `http://` works only for a dev server on the same network.
+2. `cd app && npm run dev`, then `npx evenhub qr --url http://<LAN-IP>:5173`.
+3. In the Even Realities app (developer mode), open Even Hub and scan the QR code.
+4. Package for upload: `npm run pack` makes an `.ehpk` file.
 
 ## Environment variables
 
@@ -166,11 +191,46 @@ Only the specification ([EVENCAD_SPEC.md](EVENCAD_SPEC.md)). No code.
 
 ## Path to launch in Even Hub
 
-*TODO* — users, `.ehpk` build, hosted backend, per-user Drive sign-in, cost per drawing, safety model.
+**Who needs it.** People who measure and make parts by hand: workshops, small machine shops,
+field service, students. They have a part and a caliper, and no CAD seat at the bench.
+
+**What is ready.** The app builds into an `.ehpk` package (`npm run pack`, checked with CLI 0.2.0).
+It asks for two permissions only: `network` (one origin, our backend) and `g2-microphone`.
+
+**What is needed to go live.**
+
+- A hosted backend with a fixed HTTPS address (the whitelist is fixed inside the package).
+- A store name without the word "Even" (store rule). The working name in `app.json` is "ShaftCAD Draft".
+- Per-user Google Drive sign-in through a pairing page on the phone. Today the server uses one account.
+- A short pairing code instead of the session id on the glasses.
+- Usage limits per user, and a spend limit on the API key.
+- Cost per drawing: a few short Claude calls with a small model, and speech-to-text on our own
+  server. The Claude part is far below one cent per drawing at list prices. The server CPU is the main cost.
+- Even Hub review: icon, privacy policy, beta test on real glasses with the phone locked.
+
+**Safety model.**
+
+- The output is a DRAFT. The mark is on every PDF and DXF until a person approves it on the phone page.
+- The AI cannot approve. It has no operation for it, and a test checks that such an answer is refused.
+- The AI never writes geometry. It returns small typed operations. Plain code validates and draws.
+- If the AI is unsure, it asks. It does not guess a missing number.
+- Audio is never stored. Secrets stay on the server. Tests and demos use made-up parts.
 
 ## Known limits
 
-*TODO*
+- **Not tested on real G2.** Image refresh speed, text size, the microphone level and the input
+  mapping are checked only in the simulator.
+- **Not run against the real Anthropic API or a real Google Drive.** Both are tested with stand-ins.
+  The development runs used the Claude Code CLI adapter.
+- **Speed.** The target is under 4 seconds from the end of speech to the new drawing. Speech-to-text
+  takes about 1 second here. The Claude call is not measured with the API yet.
+- **Speech-to-text** was checked with a computer voice only. Human voices and workshop noise are open.
+- **One part family:** stepped shafts with chamfers. No threads, keyways, tolerances or fits.
+- **Drawing polish.** Diameter dimensions on the sheet cross the centre line.
+- **One Google account, no user accounts.** Anyone who knows a session id can open its phone page.
+- English only.
+
+More detail: [docs/open-questions.md](docs/open-questions.md).
 
 ## Feature requests
 
