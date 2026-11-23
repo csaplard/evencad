@@ -8,7 +8,7 @@ from typing import Annotated, Literal, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, model_validator
 
-from server.core.spec import Chamfer, Segment, ShaftSpec
+from server.core.spec import Keyway, Chamfer, Segment, ShaftSpec
 
 
 class OpError(ValueError):
@@ -54,6 +54,12 @@ class SetChamfer(_Op):
     angle: float = 45
 
 
+class SetKeyway(_Op):
+    op: Literal["set_keyway"]
+    index: Index
+    length: float  # 0 removes the keyway. Width and depth are not here: they come from a table.
+
+
 class SetMaterial(_Op):
     op: Literal["set_material"]
     text: str = Field(max_length=60)
@@ -73,7 +79,7 @@ class Finish(_Op):
 
 
 Op = Annotated[
-    Union[AddSegment, EditSegment, DeleteSegment, SetChamfer, SetMaterial, SetTitle, Undo, Finish],
+    Union[AddSegment, EditSegment, DeleteSegment, SetChamfer, SetKeyway, SetMaterial, SetTitle, Undo, Finish],
     Field(discriminator="op"),
 ]
 _op_adapter = TypeAdapter(Op)
@@ -155,6 +161,9 @@ def apply_op(spec: ShaftSpec, op: Op) -> ShaftSpec:
             else:
                 raise OpError(f"Step {k} has no shoulder")
 
+    elif isinstance(op, SetKeyway):
+        segs[_position(new, op.index)].keyway = Keyway(length=op.length) if op.length > 0 else None
+
     elif isinstance(op, SetMaterial):
         new.material = op.text.strip() or None
 
@@ -179,7 +188,7 @@ def active_after(spec: ShaftSpec, ops: list[Op], current: Optional[int]) -> Opti
         n = len(spec.segments)
         if isinstance(op, AddSegment):
             active = op.at or n
-        elif isinstance(op, EditSegment):
+        elif isinstance(op, (EditSegment, SetKeyway)):
             active = _position(spec, op.index) + 1
         elif isinstance(op, DeleteSegment):
             active = None

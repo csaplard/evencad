@@ -17,7 +17,7 @@
         }
       ]
     },
-    "recorded": "```json\n{\"ops\": [\n  {\"op\": \"add_segment\", \"diameter\": 30, \"length\": 40, \"at\": null},\n  {\"op\": \"add_segment\", \"diameter\": 25, \"length\": 60, \"at\": null}\n], \"ask\": null}\n```"
+    "recorded": "```json\n{\n  \"ops\": [\n    {\"op\": \"add_segment\", \"diameter\": 30, \"length\": 40, \"at\": null},\n    {\"op\": \"add_segment\", \"diameter\": 25, \"length\": 60, \"at\": null}\n  ],\n  \"ask\": null\n}\n```"
   },
   {
     "name": "correction_second",
@@ -59,7 +59,7 @@
     "expect": {
       "ask": true
     },
-    "recorded": "```json\n{\"ops\": [], \"ask\": \"Is that diameter 15 or 50?\"}\n```"
+    "recorded": "```json\n{\"ops\": [], \"ask\": \"Is the diameter 15 or 50 mm?\"}\n```"
   },
   {
     "name": "thirteen_thirty",
@@ -99,7 +99,7 @@
     "expect": {
       "ask": true
     },
-    "recorded": "```json\n{\"ops\": [], \"ask\": \"Which segment and by how much?\"}\n```"
+    "recorded": "```json\n{\"ops\": [], \"ask\": \"Which segment and by how many mm?\"}\n```"
   },
   {
     "name": "chamfer_right_end",
@@ -157,7 +157,7 @@
     "expect": {
       "ask": true
     },
-    "recorded": "{\"ops\": [], \"ask\": \"What length for the new segment?\"}"
+    "recorded": "```json\n{\"ops\": [], \"ask\": \"What length for the new segment?\"}\n```"
   },
   {
     "name": "relative_with_amount",
@@ -313,6 +313,72 @@
     "expect": {
       "ask": true
     },
-    "recorded": "{\"ops\": [], \"ask\": \"Approval is done by a person on the phone page.\"}"
+    "recorded": "```json\n{\"ops\": [], \"ask\": \"Approval is done by a person on the phone page.\"}\n```"
+  },
+  {
+    "name": "keyway_clear",
+    "before": [
+      [
+        30,
+        40
+      ],
+      [
+        25,
+        60
+      ]
+    ],
+    "utterance": "keyway on the second one, twenty long",
+    "expect": {
+      "ops": [
+        {
+          "op": "set_keyway",
+          "index": 2,
+          "length": 20
+        }
+      ]
+    },
+    "recorded": "```json\n{\"ops\": [{\"op\": \"set_keyway\", \"index\": 2, \"length\": 20}], \"ask\": null}\n```"
+  },
+  {
+    "name": "keyway_no_length",
+    "before": [
+      [
+        30,
+        40
+      ],
+      [
+        25,
+        60
+      ]
+    ],
+    "utterance": "add a keyway to the second segment",
+    "expect": {
+      "ask": true
+    },
+    "recorded": "{\"ops\": [], \"ask\": \"What length should the keyway be?\"}"
+  },
+  {
+    "name": "keyway_width_is_ignored",
+    "before": [
+      [
+        30,
+        40
+      ],
+      [
+        25,
+        60
+      ]
+    ],
+    "utterance": "key slot on the first one, ten wide and twenty five long",
+    "expect": {
+      "ops": [
+        {
+          "op": "set_keyway",
+          "index": 1,
+          "length": 25
+        }
+      ]
+    },
+    "recorded": "```json\n{\"ops\": [{\"op\": \"set_keyway\", \"index\": 1, \"length\": 25}], \"ask\": null}\n```"
   }
 ]

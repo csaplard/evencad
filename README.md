@@ -53,6 +53,13 @@ speech → Whisper (on our server) → text → Claude (interpreter) → typed o
   ![Active segment in 2D and 3D](docs/img/active-segment.png)
 - Quick fix: say "no" or "wrong" (or long press) when the read-back is not what you said.
   The last entry is taken back without a model call, and the app listens again at once.
+- Keyway: say "keyway on the second one, twenty long". The speaker gives only the segment and the length.
+  Width and depth come from a table by the diameter (DIN 6885-1, form A). The AI cannot set them.
+  The keyway is in the 2D view, the 3D view, the DXF and PDF (with a note) and it is cut into the STEP model.
+
+  ![Keyway in 2D](docs/img/keyway-2d.png)
+
+  ![Keyway in 3D](docs/img/keyway-3d.png)
 - Tap also accepts a warning. Double tap opens the system exit dialog.
 - Swipe turns the drawing: 2D side view with dimensions, then a 3D line view at 30°, 60°, 90° (end view), 120°, 150°.
   The glasses show images only, so the 3D view turns in steps, one image per step.

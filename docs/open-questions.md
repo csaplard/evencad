@@ -83,3 +83,10 @@ Each item has a safe default. We work with the default until we know more.
 
 50. **"No" alone means undo.** The list of such sentences is short and strict (`is_rejection` in `server/core/guide.py`). "No chamfer" or "no, the second one is 28" still go to the interpreter. Test by voice that Whisper hears a lone "no" well. If not, long press does the same.
 51. **Long press on real G2.** The OS uses "tap, then long press" for its own menu (docs/sdk-notes.md). Check that a plain long press reaches the app. In the simulator it does.
+
+## Added with the keyway (Nov 23)
+
+52. **Check the keyway table.** `server/core/keyway.py` holds b, h and t1 for shaft diameters over 6 up to 230 mm (DIN 6885-1, form A). The values were typed from memory of the standard, not copied from a licensed copy. Dániel: compare each row with your copy before the demo.
+53. **One keyway per segment, centred, on top.** There is no position along the segment and no angle. The drawing note says "centred". Add an offset only if the demo needs it.
+54. **No keyway dimensions as DIMENSION entities.** The sheet has a text note with width, length and depth. There is no section view that shows the depth.
+55. **Tolerances are not on the drawing.** The standard also gives fits for the width (P9, N9). They are not shown.

@@ -71,6 +71,13 @@ def render_glasses(
         else:
             _dash_dot(g, 4, w - 4, a[1])
 
+    for slot in drawing.slots:
+        (xa, ya), (xb, yb) = px((slot.x1, slot.width / 2)), px((slot.x2, -slot.width / 2))
+        if xb - xa >= 4 and yb - ya >= 3:
+            g.rounded_rectangle([xa, ya, xb, yb], radius=(yb - ya) // 2, outline=1, width=1)
+        else:
+            g.line([(xa, (ya + yb) // 2), (xb, (ya + yb) // 2)], fill=1, width=LINE)  # too small for an oblong
+
     span = segment_span(spec, active_segment) if highlight and len(spec.segments) > 1 else None
     if span:
         x1, x2, r = span

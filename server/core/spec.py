@@ -21,6 +21,17 @@ class Chamfer(BaseModel):
     angle: float = 45  # from the axis, degrees
 
 
+class Keyway(BaseModel):
+    """A key slot on top of one segment, centred along it. Only the length is stored.
+
+    Width and depth come from the table in server/core/keyway.py, by the segment diameter.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    length: float  # along the axis, mm, round ends included
+
+
 class Segment(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -28,6 +39,7 @@ class Segment(BaseModel):
     length: float
     chamfer_left: Optional[Chamfer] = None
     chamfer_right: Optional[Chamfer] = None
+    keyway: Optional[Keyway] = None
 
 
 class ShaftSpec(BaseModel):

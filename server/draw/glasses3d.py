@@ -15,7 +15,7 @@ from PIL import Image, ImageDraw
 
 from server.core.spec import ShaftSpec
 from server.draw.glasses import BAND, FONT_PX, LINE, _font, segment_span
-from server.draw.model import profile
+from server.draw.model import Slot, profile, slots
 
 PITCH_DEG = 20  # the view looks down a little, so circles show as ellipses
 YAW_STEPS = (30, 60, 90, 120, 150)  # 90 = end view
@@ -61,6 +61,17 @@ def _hull(points: list[tuple[float, float]]) -> list[tuple[float, float]]:
     return half(pts) + half(reversed(pts))
 
 
+def _slot_outline(project, slot: Slot) -> list[tuple[float, float]]:
+    """The keyway edge on the cylinder surface, as projected points. The keyway is on top (+Y)."""
+    half = slot.width / 2
+    flat = []  # (x, z) around the oblong
+    for cx, start in ((slot.x2 - half, -90), (slot.x1 + half, 90)):
+        for k in range(9):
+            a = math.radians(start + 180 * k / 8)
+            flat.append((cx + half * math.cos(a), half * math.sin(a)))
+    return [project(x, math.sqrt(max(slot.radius**2 - z**2, 0)), z) for x, z in flat]
+
+
 def render_glasses_3d(
     spec: ShaftSpec, yaw_deg: float, size: tuple[int, int] = BAND, pitch_deg: float = PITCH_DEG,
     active_segment: Optional[int] = None,
@@ -85,6 +96,8 @@ def render_glasses_3d(
         pts = pts[::-1]
     rings = [_circle(project, x, r) for x, r in pts]
     span = segment_span(spec, active_segment) if len(spec.segments) > 1 else None
+
+    key_slots = slots(spec)
 
     def is_active(a, b) -> bool:
         """True for a band that is part of the active segment (its body or its chamfers)."""
@@ -114,6 +127,11 @@ def render_glasses_3d(
         outline([px(p) for p in _hull(far + near)], fill=0, width=width)  # the band covers what is behind it
         if len(near) > 1:
             outline([px(p) for p in near], fill=None, width=width)  # its near edge is a visible circle
+        lo, hi = sorted((pts[i][0], pts[i + 1][0]))
+        for slot in key_slots:
+            if lo - 1e-9 <= slot.x1 and slot.x2 <= hi + 1e-9:
+                edge = [px(p) for p in _slot_outline(project, slot)]
+                g.line(edge + [edge[0]], fill=1, width=1)
 
     g.text((4, 2), f"3D {round(yaw_deg)}°", fill=1, font=font)
     return img.convert("L")

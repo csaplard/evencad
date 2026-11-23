@@ -9,6 +9,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
+from server.core.keyway import keyway_size
 from server.core.spec import Chamfer, ShaftSpec, fmt
 
 
@@ -90,6 +91,16 @@ def validate(spec: ShaftSpec, limits: Optional[Limits] = None) -> Report:
                 err("CHAMFER_NO_EDGE", f"Seg {i}: no free edge for chamfer", i)
             elif chamfer_depth(c) > free + 1e-9:
                 err("CHAMFER_TOO_DEEP", f"Seg {i}: chamfer deeper than edge", i)
+
+        if s.keyway:
+            size = keyway_size(s.diameter)
+            room = s.length - sum(c.size for c in chamfers)
+            if size is None:
+                err("KEYWAY_NO_SIZE", f"Seg {i}: no keyway size for Ø{fmt(s.diameter)}", i)
+            elif s.keyway.length <= size.width:
+                err("KEYWAY_TOO_SHORT", f"Seg {i}: keyway must be over {fmt(size.width)} long", i)
+            elif s.keyway.length > room + 1e-9:
+                err("KEYWAY_TOO_LONG", f"Seg {i}: keyway longer than segment", i)
 
     one_segment_too_long = any(s.length > lim.max_length for s in segs)
     if spec.total_length > lim.max_length and not one_segment_too_long:

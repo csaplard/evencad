@@ -11,6 +11,7 @@ import ezdxf
 from ezdxf.document import Drawing as DxfDoc
 from ezdxf.enums import TextEntityAlignment
 
+from server.core.keyway import STANDARD
 from server.core.spec import ShaftSpec, fmt
 from server.draw.model import Style, draw_shaft
 
@@ -61,6 +62,19 @@ def build_dxf(spec: ShaftSpec) -> DxfDoc:
 
     for ln in drawing.lines:
         msp.add_line(pt(ln.p1), pt(ln.p2), dxfattribs={"layer": ln.layer})
+
+    # Keyways: seen from above, an oblong with round ends on the axis. Sizes go into a note.
+    for n, slot in enumerate(drawing.slots):
+        half = slot.width / 2
+        left, right = (slot.x1 + half, 0), (slot.x2 - half, 0)
+        for sign in (1, -1):
+            msp.add_line(pt((left[0], sign * half)), pt((right[0], sign * half)), dxfattribs={"layer": "OUTLINE"})
+        msp.add_arc(pt(left), half * scale, 90, 270, dxfattribs={"layer": "OUTLINE"})
+        msp.add_arc(pt(right), half * scale, 270, 90, dxfattribs={"layer": "OUTLINE"})
+        note = (f"Keyway on segment {slot.segment}: {fmt(slot.width)} × {fmt(slot.x2 - slot.x1)}, "
+                f"depth {fmt(slot.depth)}, centred ({STANDARD})")
+        msp.add_text(note, height=3.0, dxfattribs={"layer": "TEXT", "style": TEXT_STYLE}).set_placement(
+            (MARGIN + 4, SHEET_H - MARGIN - 8 - 5 * n), align=TextEntityAlignment.LEFT)
 
     dim_attribs = {"layer": "DIM"}
     override = {"dimlfac": 1 / scale, "dimtxt": 3.0, "dimasz": 2.5, "dimexo": 1.0, "dimexe": 1.5, "dimgap": 1.0, "dimdec": 2, "dimzin": 8, "dimclrt": 3}

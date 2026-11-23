@@ -2,6 +2,7 @@
 
 import json
 
+from server.core.keyway import keyway_size
 from server.core.spec import ShaftSpec, fmt
 
 SYSTEM_PROMPT = """You turn one spoken sentence into edit operations for a stepped shaft drawing.
@@ -20,6 +21,9 @@ Allowed operations (use only these, with only these fields):
 {"op": "delete_segment", "index": number or "last"}
 {"op": "set_chamfer", "where": "left_end" or "right_end" or step number, "size": number, "angle": number}
     "angle" is 45 unless the speaker says another angle. "one by forty-five" means size 1, angle 45.
+{"op": "set_keyway", "index": number or "last", "length": number}
+    A keyway (key slot, key seat) on one segment. Give only its length. Length 0 removes it.
+    Width and depth come from a standard table by the diameter. Never output them, even if they are spoken.
 {"op": "set_material", "text": string}
 {"op": "set_title", "text": string}
 {"op": "undo"}
@@ -36,6 +40,7 @@ Rules:
 - "it", "that one", "this" with no clear target: if the shaft has exactly one segment, use it. Otherwise ask.
   "the last one" is index "last". "the second one" is index 2.
 - A bare number for an existing segment ("make the second one twenty-eight") means its diameter.
+- A keyway needs a segment and a length. If one is missing, ask for it.
 - Relative changes with no amount ("bigger", "a bit shorter") need a question.
 - Relative changes with an amount ("two longer") are fine: compute the new value from the current shaft.
 - Several clear changes in one sentence give several operations, in spoken order.
@@ -53,6 +58,9 @@ def describe_spec(spec: ShaftSpec) -> str:
             extra.append(f"chamfer left {fmt(s.chamfer_left.size)}x{fmt(s.chamfer_left.angle)}")
         if s.chamfer_right:
             extra.append(f"chamfer right {fmt(s.chamfer_right.size)}x{fmt(s.chamfer_right.angle)}")
+        if s.keyway:
+            size = keyway_size(s.diameter)
+            extra.append(f"keyway {fmt(size.width) if size else '?'} wide, {fmt(s.keyway.length)} long")
         lines.append(f"  {i}: diameter {fmt(s.diameter)}, length {fmt(s.length)}" + (", " + ", ".join(extra) if extra else ""))
     lines.append(f"Title: {spec.title}. Material: {spec.material or 'not set'}.")
     return "\n".join(lines)

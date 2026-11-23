@@ -4,6 +4,7 @@ Built from the spec by a template. The AI never writes this text.
 Example: "3 steps  Ø30×40  Ø25×60  Ø20×30  C1 right  L130"
 """
 
+from server.core.keyway import keyway_size
 from server.core.spec import Chamfer, ShaftSpec, fmt
 
 MAX_CHARS = 90  # about two lines on the 576 px display
@@ -31,6 +32,12 @@ def readback(spec: ShaftSpec) -> str:
             chamfers.append(_chamfer(s.chamfer_left, "left" if i == 1 else f"step {i - 1}"))
         if s.chamfer_right:
             chamfers.append(_chamfer(s.chamfer_right, "right" if i == n else f"step {i}"))
+
+    # Keyway: "KW2 8×20" = on segment 2, 8 wide (from the table), 20 long.
+    for i, s in enumerate(segs, start=1):
+        if s.keyway:
+            size = keyway_size(s.diameter)
+            chamfers.append(f"KW{i} {fmt(size.width) if size else '?'}×{fmt(s.keyway.length)}")
 
     text = SEP.join([head, *dims, *chamfers, tail])
     if len(text) <= MAX_CHARS:

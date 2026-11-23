@@ -7,6 +7,7 @@ Coordinates are millimetres. X runs along the axis from 0. Y is up. The axis is 
 from dataclasses import dataclass, field
 from typing import Literal, Optional
 
+from server.core.keyway import keyway_size
 from server.core.spec import ShaftSpec, fmt
 from server.core.validation import chamfer_depth
 
@@ -31,6 +32,18 @@ class Dim:
 
 
 @dataclass(frozen=True)
+class Slot:
+    """A keyway seen from above: an oblong with round ends, centred on the axis."""
+
+    x1: float
+    x2: float
+    width: float
+    depth: float
+    segment: int  # 1-based
+    radius: float  # radius of its segment
+
+
+@dataclass(frozen=True)
 class Style:
     name: Literal["glasses", "sheet"] = "sheet"
     # Glasses only: with more segments than this, show the dimensions of the
@@ -43,6 +56,7 @@ class Style:
 class Drawing:
     lines: list[Line] = field(default_factory=list)
     dims: list[Dim] = field(default_factory=list)
+    slots: list[Slot] = field(default_factory=list)
     length: float = 0
     max_diameter: float = 0
 
@@ -72,6 +86,19 @@ def profile(spec: ShaftSpec) -> list[Point]:
     return clean
 
 
+def slots(spec: ShaftSpec) -> list[Slot]:
+    """One slot per keyway that has a table size. It sits in the middle of its segment."""
+    out: list[Slot] = []
+    x = 0.0
+    for i, s in enumerate(spec.segments, start=1):
+        size = keyway_size(s.diameter) if s.keyway else None
+        if size and s.keyway.length > size.width:
+            mid = x + s.length / 2
+            out.append(Slot(mid - s.keyway.length / 2, mid + s.keyway.length / 2, size.width, size.depth, i, s.diameter / 2))
+        x += s.length
+    return out
+
+
 def draw_shaft(spec: ShaftSpec, style: Optional[Style] = None) -> Drawing:
     style = style or Style()
     d = Drawing(length=spec.total_length, max_diameter=spec.max_diameter)
@@ -95,6 +122,8 @@ def draw_shaft(spec: ShaftSpec, style: Optional[Style] = None) -> Drawing:
             edge_r[x] = max(edge_r.get(x, 0), r)
     for x, r in edge_r.items():
         d.lines.append(Line((x, r), (x, -r), "OUTLINE"))
+
+    d.slots = slots(spec)
 
     # Centre line, a little longer than the part.
     over = max(2.0, 0.03 * d.length)
