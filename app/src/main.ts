@@ -18,7 +18,7 @@ const mainText = new TextContainerProperty({
   paddingLength: 4,
   containerID: 1,
   containerName: 'main',
-  content: 'Hello from G2!\nTap to count · double-tap to exit.',
+  content: 'EvenCAD\nSay it. See it. Sign it.\nTap to count · swipe · double-tap to exit.',
   isEventCapture: 1,
 })
 
@@ -63,11 +63,26 @@ const unsubscribe = bridge.onEvenHubEvent(event => {
 
   if (sysType === OsEventTypeList.CLICK_EVENT || textType === OsEventTypeList.CLICK_EVENT) {
     taps += 1
+    console.log('tap', taps)
     bridge.textContainerUpgrade(
       new TextContainerUpgrade({
         containerID: 1,
         containerName: 'main',
-        content: `Taps: ${taps}\nTap to count · double-tap to exit.`,
+        content: `EvenCAD\nTaps: ${taps}\nTap to count · swipe · double-tap to exit.`,
+      }),
+    )
+    return
+  }
+
+  // Swipe up / down. They arrive in the text envelope (see docs/sdk-notes.md).
+  if (textType === OsEventTypeList.SCROLL_TOP_EVENT || textType === OsEventTypeList.SCROLL_BOTTOM_EVENT) {
+    const dir = textType === OsEventTypeList.SCROLL_TOP_EVENT ? 'up' : 'down'
+    console.log('swipe', dir)
+    bridge.textContainerUpgrade(
+      new TextContainerUpgrade({
+        containerID: 1,
+        containerName: 'main',
+        content: `EvenCAD\nSwipe ${dir}\nTap to count · swipe · double-tap to exit.`,
       }),
     )
     return
