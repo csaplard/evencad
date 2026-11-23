@@ -1,7 +1,6 @@
 """Session store: in memory, plus one JSON file per session.
 
-The file holds the spec and the full operation history.
-The history gives undo and an audit trail (added in step 2).
+The file holds the spec, the undo stack and an append-only log (audit trail).
 """
 
 import json
@@ -19,9 +18,27 @@ SESSION_ID_PATTERN = r"s_\d{8}_[0-9a-f]{6}"
 _ID_RE = re.compile(SESSION_ID_PATTERN)
 
 
+def now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+class Turn(BaseModel):
+    """One accepted change. `before` is the spec before it, for undo."""
+
+    at: str
+    utterance: Optional[str] = None
+    ops: list[dict]
+    before: dict
+
+
 class Session(BaseModel):
     spec: ShaftSpec
-    history: list[dict] = Field(default_factory=list)
+    history: list[Turn] = Field(default_factory=list)  # undo stack
+    log: list[dict] = Field(default_factory=list)  # everything that happened, never shortened
+    finished: bool = False
+
+    def record(self, event: str, **data) -> None:
+        self.log.append({"at": now_iso(), "event": event, **data})
 
 
 def new_session_id(now: Optional[datetime] = None) -> str:
@@ -31,15 +48,20 @@ def new_session_id(now: Optional[datetime] = None) -> str:
 
 class SessionStore:
     def __init__(self, data_dir: Path):
-        self._dir = Path(data_dir) / "sessions"
+        self.data_dir = Path(data_dir)
+        self._dir = self.data_dir / "sessions"
         self._dir.mkdir(parents=True, exist_ok=True)
         self._cache: dict[str, Session] = {}
+
+    def out_dir(self, sid: str) -> Path:
+        return self.data_dir / "out" / sid
 
     def create(self) -> Session:
         sid = new_session_id()
         while self._path(sid).exists():
             sid = new_session_id()
         session = Session(spec=ShaftSpec(id=sid))
+        session.record("created")
         self.save(session)
         return session
 
