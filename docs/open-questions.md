@@ -60,16 +60,10 @@ Each item has a safe default. We work with the default until we know more.
 35. **`start.sh` is not tested.** Only `scripts/start.ps1` ran (Windows): backend and app came up, and a sentence without an API key gave a clear error. The bash script needs a run on macOS or Linux.
 36. **Clean-machine test.** Planned for Nov 28: a fresh clone, only the README, on a machine without the dev tools.
 
-## Added with the 3D viewer (Nov 23)
-
-37. **3D on the phone, not on the glasses.** The glasses cannot run WebGL and one image refresh takes about 0.8 s, so a rotating view there is not smooth. The phone page has the three.js viewer. A stepped rotation on the glasses (swipe = 30 degrees) is possible later, after the real G2 speed test.
-38. **three.js comes from a CDN.** The phone needs internet for the 3D view. Without it the page still shows the 2D side view and the downloads. Bundling the library into the server is a small follow-up.
-39. **Viewer is checked in a desktop browser only** (also at phone width). A real phone browser and touch gestures are not tested yet.
-
 ## Added with the 3D view on the glasses (Nov 23)
 
-40. **Item 37 is replaced.** The glasses now have a 3D line view. Swipe turns it in steps (30, 60, 90, 120, 150 degrees). It is a hidden-line drawing made on the server, sent as the same two image tiles as the 2D view.
+40. **3D view on the glasses.** The glasses have a 3D line view. Swipe turns it in steps (30, 60, 90, 120, 150 degrees). It is a hidden-line drawing made on the server, sent as the same two image tiles as the 2D view.
 41. **Speed on real G2.** In the simulator a view change takes about 40 ms. The docs say a full-screen image refresh took about 800 ms on the device. Two tiles are half a screen, so expect about half a second per step. Measure it on real G2. If it is too slow, use fewer steps or one 288 x 144 tile for the 3D view.
 42. **No dimensions in the 3D view.** It is for checking the shape. The numbers stay in the 2D view and in the read-back line.
 43. **Swipe direction.** Swipe down = next view. Check on real G2 that this feels right on the temple and on the ring.
-44. **The phone 3D viewer stays for now.** It was built from a misunderstanding (the 3D view was wanted on the glasses). It does no harm, but it loads three.js from a CDN. Remove it if the page should stay minimal.
+44. **No 3D viewer on the phone page.** One was built by mistake and removed again. The STEP file can be opened in any CAD viewer.

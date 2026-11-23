@@ -171,20 +171,3 @@ def test_the_session_file_keeps_an_audit_log(client, sid, tmp_path):
 def test_empty_text_is_refused(client, sid):
     assert client.post(f"/session/{sid}/utterance", json={"text": ""}).status_code == 422
 
-
-def test_profile_endpoint_feeds_the_3d_viewer(client, sid):
-    assert client.get(f"/session/{sid}/profile").json() == {"points": [], "length": 0, "max_diameter": 0}
-    say(client, sid, "three steps")
-    say(client, sid, "chamfer")
-    p = client.get(f"/session/{sid}/profile").json()
-    assert p["length"] == 130 and p["max_diameter"] == 30
-    assert p["points"][0] == [0, 0] and p["points"][-1] == [130, 0]
-    assert [129, 10] in p["points"] and [130, 9] in p["points"]  # the chamfer
-
-
-def test_phone_page_loads_the_3d_viewer(client, sid):
-    page = client.get(f"/s/{sid}").text
-    assert f'id="viewer" data-session="{sid}"' in page and 'src="/web/viewer.js"' in page
-    js = client.get("/web/viewer.js")
-    assert js.status_code == 200 and "javascript" in js.headers["content-type"]
-    assert "LatheGeometry" in js.text

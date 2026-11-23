@@ -46,7 +46,7 @@ speech → Whisper (on our server) → text → Claude (interpreter) → typed o
   The glasses show images only, so the 3D view turns in steps, one image per step.
 - Speech to text runs on the backend with faster-whisper (`base.en`, about 1 s per sentence on a laptop CPU).
 - `finish` makes `data/out/<session id>/shaft.step`, `shaft.dxf`, `shaft.pdf`.
-- Phone page `/s/<session id>`: a 3D view you can rotate with a finger (three.js), the 2D side view, downloads, and the human "Approve for review" step.
+- Phone page `/s/<session id>`: the 2D side view, downloads, and the human "Approve for review" step.
 
 - `finish` also copies the three files to a Google Drive folder (when Drive is set up). Approval replaces the DXF and PDF there.
 
@@ -193,7 +193,6 @@ Only the specification ([EVENCAD_SPEC.md](EVENCAD_SPEC.md)). No code.
 | faster-whisper (CTranslate2, Whisper `base.en` model) | speech to text on the server | MIT |
 | `anthropic` (official SDK) | interpreter, default adapter | MIT |
 | google-api-python-client, google-auth, google-auth-oauthlib | Google Drive upload | Apache-2.0 |
-| three.js 0.160 (loaded from the jsDelivr CDN) | 3D view on the phone page | MIT |
 | pytest, httpx, pypdf | tests | MIT, BSD-3-Clause, BSD-3-Clause |
 | Claude Code CLI | interpreter during development only | Anthropic terms |
 
