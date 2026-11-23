@@ -20,7 +20,8 @@ from pydantic import BaseModel, Field
 
 from server.ai.interpreter import Interpreter, InterpreterError, get_interpreter
 from server.ai.stt import MAX_WAV_BYTES, AudioError, SttError, SttProvider, get_stt, wav_to_pcm
-from server.core.ops import Finish, OpError, Undo, apply_ops
+from server.core.guide import next_step, parse_number
+from server.core.ops import AddSegment, Finish, OpError, Undo, apply_ops
 from server.core.readback import readback
 from server.core.validation import validate
 from server.drive import DriveError, DriveUploader, get_uploader
@@ -136,7 +137,8 @@ def create_app(
             "spec": spec.model_dump(mode="json"),
             "readback": readback(spec),
             "validation": report.model_dump(),
-            "can_undo": bool(session.history),
+            "can_undo": bool(session.history) or session.pending_diameter is not None,
+            "guide": None if session.finished else next_step(spec, session.pending_diameter),
             "finished": session.finished,
             "files": files,
             "drive": session.drive if session.finished else None,
@@ -150,6 +152,11 @@ def create_app(
         }
 
     def do_undo(session: Session) -> Optional[str]:
+        if session.pending_diameter is not None:
+            # A half-entered segment is undone first. The shaft itself does not change.
+            session.record("undo", undone_pending_diameter=session.pending_diameter)
+            session.pending_diameter = None
+            return None
         if not session.history:
             return "Nothing to undo"
         turn = session.history.pop()
@@ -221,6 +228,31 @@ def create_app(
         """Text -> interpreter -> operations -> new state. Shared by typed text and voice."""
         sid = session.spec.id
         t0 = time.perf_counter()
+
+        # Guided measuring: a bare number answers the question on the display. No model call.
+        field = "diameter" if session.pending_diameter is None else "length"
+        number = None if session.finished else parse_number(text, field)
+        if number is not None:
+            extra = {"heard": text, "timing_ms": {**timing, "interpret": 0}}
+            if field == "diameter":
+                session.pending_diameter = number
+                session.record("guide_diameter", utterance=text, diameter=number)
+            else:
+                op = AddSegment(op="add_segment", diameter=session.pending_diameter, length=number)
+                ops_json = [op.model_dump(exclude_none=True)]
+                try:
+                    new_spec = apply_ops(session.spec, [op])
+                except OpError as e:
+                    session.record("rejected", utterance=text, ops=ops_json, reason=str(e), source="guide")
+                    store.save(session)
+                    return state(session, error=str(e), **extra)
+                session.history.append(Turn(at=now_iso(), utterance=text, ops=ops_json, before=session.spec.model_dump(mode="json")))
+                session.spec = new_spec
+                session.pending_diameter = None
+                session.record("applied", utterance=text, ops=ops_json, source="guide")
+            store.save(session)
+            return state(session, **extra)
+
         try:
             result = the_interpreter().interpret(session.spec, text)
         except InterpreterError as e:
@@ -246,6 +278,7 @@ def create_app(
             session.history.append(Turn(at=now_iso(), utterance=text, ops=ops_json, before=session.spec.model_dump(mode="json")))
             session.spec = new_spec
             session.finished = False
+            session.pending_diameter = None  # a full sentence ends the half-entered segment
             session.record("applied", utterance=text, ops=ops_json)
 
         if any(isinstance(op, Undo) for op in result.ops):

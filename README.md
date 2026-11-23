@@ -41,6 +41,12 @@ speech → Whisper (on our server) → text → Claude (interpreter) → typed o
 - One vector model of the side view. It feeds the glasses image, the DXF and the PDF.
 - Glasses page: status line, drawing (two 288 × 144 image tiles), read-back and warnings.
 - Tap on the glasses starts listening. It stops after 1.5 s of silence, on a second tap, or after 20 s.
+- Guided measuring: the display always asks for the next number, for example `Next: segment 2 diameter?`.
+  A bare number answers it ("twenty five", then "sixty"). The server reads the number itself. No model call, so it is fast.
+  After a diameter the app listens for the length at once, with no extra tap. Full sentences still work at any time.
+  Undo drops a half-entered segment first.
+
+  ![Guided measuring](docs/img/guide-length.png)
 - Tap also accepts a warning. Double tap opens the system exit dialog.
 - Swipe turns the drawing: 2D side view with dimensions, then a 3D line view at 30°, 60°, 90° (end view), 120°, 150°.
   The glasses show images only, so the 3D view turns in steps, one image per step.

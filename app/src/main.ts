@@ -112,15 +112,16 @@ function show(next: SessionState) {
   else if (error) status = `! ${error}`
   setText(STATUS, status)
 
+  // Guided measuring: the last line always asks for the next number.
   const empty = next.spec.segments.length === 0
-  const lines = [empty ? 'Tap, then say a diameter and a length' : next.readback]
+  const lines = empty ? [] : [next.readback]
   const problem = empty ? undefined : (validation.errors[0] ?? validation.warnings[0])
   if (problem) lines.push(`${validation.errors.length ? 'Error' : 'Warning'}: ${problem.text}`)
   if (needs_confirm) lines.push('Tap to accept the warning and finish')
   else if (finished) {
     const saved = next.drive?.status === 'ok' ? ' · saved to Drive' : next.drive?.status === 'error' ? ' · Drive failed' : ''
     lines.push(`DRAFT files ready${saved} · code ${next.id.slice(-6)}`)
-  }
+  } else if (next.guide) lines.push(empty ? `Tap and say a number. ${next.guide.text}` : next.guide.text)
   setText(INFO, lines.join('\n'))
 
   redraw()
@@ -176,7 +177,8 @@ async function startListening() {
     return
   }
   recorder = new Recorder()
-  setText(STATUS, 'Listening… tap to stop')
+  const g = state.guide
+  setText(STATUS, g ? `Listening… segment ${g.segment} ${g.field}?` : 'Listening… tap to stop')
 }
 
 async function stopListening() {
@@ -190,7 +192,10 @@ async function stopListening() {
   }
   console.log(`recorded ${rec.seconds.toFixed(1)} s`)
   const wav = rec.finish()
+  const wasLength = state.guide?.field === 'length'
   await run('Thinking…', () => sendAudio(state!.id, wav))
+  // A diameter was just given: listen for its length at once, with no extra tap.
+  if (!wasLength && state?.guide?.field === 'length' && !state.ask && !state.error) await startListening()
 }
 
 function onTap() {
@@ -277,7 +282,7 @@ function logLine(text: string) {
 
 function renderPhone() {
   if (!state) return
-  app.querySelector('#readback')!.textContent = state.readback
+  app.querySelector('#readback')!.textContent = [state.readback, state.guide?.text].filter(Boolean).join(' · ')
   const links = app.querySelector('#links')!
   links.innerHTML = state.finished ? `<a href="${BACKEND}${state.phone_page}" target="_blank">Open the files page</a>` : ''
   if (state.ask) logLine(`? ${state.ask}`)

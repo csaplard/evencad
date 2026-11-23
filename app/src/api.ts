@@ -18,6 +18,8 @@ export interface SessionState {
   files: Record<string, string>
   phone_page: string
   views_3d: number[]
+  // Guided measuring: what the display asks for next. null when the drawing is finished.
+  guide: { segment: number; field: 'diameter' | 'length'; diameter: number | null; text: string } | null
   drive: { status: 'ok' | 'error'; folder_url?: string; message?: string } | null
   heard: string | null
   ask: string | null

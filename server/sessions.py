@@ -37,6 +37,7 @@ class Session(BaseModel):
     log: list[dict] = Field(default_factory=list)  # everything that happened, never shortened
     finished: bool = False
     drive: Optional[dict] = None  # result of the last Google Drive upload
+    pending_diameter: Optional[float] = None  # guided measuring: diameter given, length still missing
 
     def record(self, event: str, **data) -> None:
         self.log.append({"at": now_iso(), "event": event, **data})

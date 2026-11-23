@@ -306,3 +306,4 @@ Details and sources are in `docs/sdk-notes.md`. These points change earlier sect
 - **Hungarian (2, stretch).** The store has no `hu` language. Dictation in Hungarian is still possible through STT.
 - **Claude call (4, suggested stack).** Temperature cannot be set on current models, so it is not sent. The answer is plain JSON checked by Pydantic, not tool use, so the CLI and API adapters stay identical. Thinking is off and effort is low, for speed.
 - **3D view on the glasses (2, out of scope).** Now in scope, in a small form: a stepped 3D line view (five fixed angles) that the user turns with a swipe. There is still no live 3D engine on the glasses.
+- **Guided measuring (new).** The display asks for the next number (diameter, then length). A bare number is read by the server with strict rules, without the model. The result is the same `add_segment` operation, with the same validation, undo and audit log. Full sentences still go to the interpreter.

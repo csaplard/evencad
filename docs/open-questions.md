@@ -67,3 +67,9 @@ Each item has a safe default. We work with the default until we know more.
 42. **No dimensions in the 3D view.** It is for checking the shape. The numbers stay in the 2D view and in the read-back line.
 43. **Swipe direction.** Swipe down = next view. Check on real G2 that this feels right on the temple and on the ring.
 44. **No 3D viewer on the phone page.** One was built by mistake and removed again. The STEP file can be opened in any CAD viewer.
+
+## Added with guided measuring (Nov 23)
+
+45. **Bare numbers skip the model.** `server/core/guide.py` reads a bare number with strict rules. Two numbers ("thirty forty"), a doubt ("15 or 50") or any other word go to the interpreter as before. Fifteen/fifty can still be misheard by speech recognition. The display shows the value (`Ø50 length?`), and undo drops it.
+46. **Listening starts again by itself after a diameter.** The status line shows `Listening…`. It stops after 1.5 s of silence, on a tap, or after 20 s. Check on real G2 that this feels right. If not, remove the one line in `stopListening` in `app/src/main.ts`.
+47. **Short words and Whisper.** One-word answers ("sixty") were tested as typed text only. Test them by voice. If recognition is weak, try `STT_MODEL=small.en`.
