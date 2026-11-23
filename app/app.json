@@ -12,6 +12,10 @@
       "whitelist": [
         "http://localhost:8000"
       ]
+    },
+    {
+      "name": "g2-microphone",
+      "desc": "Records one spoken sentence at a time to turn dimensions into a drawing. Audio is not stored."
     }
   ],
   "supported_languages": [

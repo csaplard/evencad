@@ -6,8 +6,10 @@ import {
   CreateStartUpPageContainer,
   TextContainerUpgrade,
   OsEventTypeList,
+  AudioInputSource,
 } from '@evenrealities/even_hub_sdk'
-import { BACKEND, createSession, fetchTile, finish, sendUtterance, undo } from './api'
+import { BACKEND, createSession, fetchTile, finish, sendAudio, sendUtterance, undo } from './api'
+import { Recorder } from './recorder'
 import type { SessionState } from './api'
 
 // ── Glasses page layout (576 x 288) ──────────────────────────────────────
@@ -104,8 +106,9 @@ function show(next: SessionState) {
   else if (error) status = `! ${error}`
   setText(STATUS, status)
 
-  const lines = [next.readback]
-  const problem = validation.errors[0] ?? validation.warnings[0]
+  const empty = next.spec.segments.length === 0
+  const lines = [empty ? 'Tap, then say a diameter and a length' : next.readback]
+  const problem = empty ? undefined : (validation.errors[0] ?? validation.warnings[0])
   if (problem) lines.push(`${validation.errors.length ? 'Error' : 'Warning'}: ${problem.text}`)
   if (needs_confirm) lines.push('Tap to accept the warning and finish')
   else if (finished) lines.push(`DRAFT files ready · code ${next.id.slice(-6)}`)
@@ -137,6 +140,42 @@ async function run(label: string, action: () => Promise<SessionState>) {
 
 const say = (text: string) => run(`"${text}" …`, () => sendUtterance(state!.id, text))
 
+// ── Voice ────────────────────────────────────────────────────────────────
+// Tap starts listening. It stops after 1.5 s of silence, on a second tap,
+// or after 20 s. The frames are sent as one WAV file and then dropped.
+let recorder: Recorder | null = null
+
+async function startListening() {
+  if (!state || busy || recorder) return
+  const ok = await bridge.audioControl(true, AudioInputSource.Glasses)
+  if (!ok) {
+    setText(STATUS, '! Microphone is not available')
+    return
+  }
+  recorder = new Recorder()
+  setText(STATUS, 'Listening… tap to stop')
+}
+
+async function stopListening() {
+  const rec = recorder
+  if (!rec || !state) return
+  recorder = null
+  await bridge.audioControl(false)
+  if (!rec.hasSpeech) {
+    setText(STATUS, '? I did not hear anything')
+    return
+  }
+  console.log(`recorded ${rec.seconds.toFixed(1)} s`)
+  const wav = rec.finish()
+  await run('Thinking…', () => sendAudio(state!.id, wav))
+}
+
+function onTap() {
+  if (state?.needs_confirm) run('Finishing…', () => finish(state!.id, true))
+  else if (recorder) stopListening()
+  else startListening()
+}
+
 // ── Glasses input ────────────────────────────────────────────────────────
 // CLICK_EVENT is 0 and zero values are dropped on the wire, so a tap has no
 // eventType. Resolve the default inside the envelope check only.
@@ -146,6 +185,12 @@ function eventTypeOf(envelope?: { eventType?: OsEventTypeList }): OsEventTypeLis
 }
 
 const unsubscribe = bridge.onEvenHubEvent(event => {
+  const pcm = event.audioEvent?.audioPcm
+  if (pcm) {
+    if (recorder?.add(pcm)) stopListening()
+    return
+  }
+
   const sysType = eventTypeOf(event.sysEvent)
   const textType = eventTypeOf(event.textEvent)
 
@@ -156,12 +201,22 @@ const unsubscribe = bridge.onEvenHubEvent(event => {
   }
 
   if (sysType === OsEventTypeList.CLICK_EVENT || textType === OsEventTypeList.CLICK_EVENT) {
-    // Tap = confirm. Today it confirms a warning. Later it also starts listening.
-    if (state?.needs_confirm) run('Finishing…', () => finish(state!.id, true))
+    // Tap = talk, stop talking, or accept a warning.
+    onTap()
+    return
+  }
+
+  // The app left the front: the microphone must not stay open.
+  if (sysType === OsEventTypeList.FOREGROUND_EXIT_EVENT && recorder) {
+    recorder = null
+    bridge.audioControl(false)
+    setText(STATUS, 'EvenCAD · ready')
     return
   }
 
   if (sysType === OsEventTypeList.SYSTEM_EXIT_EVENT || sysType === OsEventTypeList.ABNORMAL_EXIT_EVENT) {
+    recorder = null
+    bridge.audioControl(false)
     unsubscribe()
   }
 })
@@ -171,12 +226,13 @@ const app = document.querySelector<HTMLDivElement>('#app')!
 app.innerHTML = `
   <main>
     <h1>EvenCAD</h1>
-    <p class="muted">Typed text stands in for voice. The drawing is on the glasses.</p>
+    <p class="muted">Tap the glasses and speak. Typed text is the fallback. The drawing is on the glasses.</p>
     <form id="say">
       <input id="text" autocomplete="off" placeholder="diameter thirty, forty long" />
       <button>Send</button>
     </form>
     <p>
+      <button id="talk" type="button">Talk</button>
       <button id="undo" type="button">Undo</button>
       <button id="finish" type="button">Finish</button>
     </p>
@@ -209,6 +265,7 @@ app.querySelector<HTMLFormElement>('#say')!.addEventListener('submit', ev => {
   input.value = ''
   say(text)
 })
+app.querySelector('#talk')!.addEventListener('click', onTap)
 app.querySelector('#undo')!.addEventListener('click', () => state && run('Undo…', () => undo(state!.id)))
 app.querySelector('#finish')!.addEventListener('click', () => state && run('Finishing…', () => finish(state!.id, false)))
 
