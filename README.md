@@ -46,8 +46,14 @@ speech → Whisper (on our server) → text → Claude (interpreter) → typed o
 - `finish` makes `data/out/<session id>/shaft.step`, `shaft.dxf`, `shaft.pdf`.
 - Phone page `/s/<session id>`: downloads and the human "Approve for review" step.
 
-Not built yet: Google Drive upload, the Anthropic API adapter, real G2 test.
-Until the API adapter exists, set `INTERPRETER=cli` (needs a logged-in Claude Code CLI).
+Not built yet: Google Drive upload, real G2 test.
+
+The interpreter has two adapters with the same prompt and the same JSON answer:
+
+- `INTERPRETER=api` (default): the Anthropic API. Needs `ANTHROPIC_API_KEY` in `.env`. Model: `CLAUDE_MODEL` (default `claude-haiku-5-5`).
+- `INTERPRETER=cli`: the Claude Code CLI, for development without an API key. Slow (5–8 s per sentence).
+
+The API adapter is tested with a fake client only. It has not been run against the real API yet (no key on the dev machine).
 
 ![The slice in the simulator](docs/img/slice-2-ask.png)
 
@@ -137,6 +143,7 @@ Only the specification ([EVENCAD_SPEC.md](EVENCAD_SPEC.md)). No code.
 | Matplotlib | PDF backend | PSF-style (BSD compatible) |
 | Pillow | glasses image | MIT-CMU |
 | faster-whisper (CTranslate2, Whisper `base.en` model) | speech to text on the server | MIT |
+| `anthropic` (official SDK) | interpreter, default adapter | MIT |
 | pytest, httpx, pypdf | tests | MIT, BSD-3-Clause, BSD-3-Clause |
 | Claude Code CLI | interpreter during development only | Anthropic terms |
 

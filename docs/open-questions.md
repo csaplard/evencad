@@ -39,3 +39,10 @@ Each item has a safe default. We work with the default until we know more.
 23. **Silence detection.** The app stops after 1.5 s below a fixed level (RMS 700). The level is a guess. The glasses audio is already processed, so it must be tuned on real G2.
 24. **No spoken test in the simulator yet.** The simulator uses the PC microphone. Frames arrive and the silent case works ("I did not hear anything"). A person has to speak to test the full path there.
 25. **First STT call is slow.** The Whisper model downloads (about 150 MB) and loads on the first sentence. The server should warm it up at start.
+
+## Added with the API adapter (Nov 23)
+
+26. **Live API run is still open.** The adapter is tested with a fake client and the recorded answers. Needed from Dániel: an `ANTHROPIC_API_KEY` in `.env` (with a spend limit). Then run `INTERPRETER=api pytest -m live` and compare the 14 golden cases and the timing.
+27. **No temperature 0.** The spec asks for temperature 0. Current models reject sampling parameters, so none is sent. Stability comes from the strict schema check, thinking off and low effort.
+28. **Plain JSON, not tool use.** The spec suggests tool use for structured output. Both adapters return plain JSON that Pydantic validates, so they stay identical. If the live run shows format errors, switch the API adapter to structured outputs (`output_config.format`).
+29. **Model choice.** Default `claude-haiku-5-5` for speed and cost. If it guesses instead of asking in the live golden run, try `claude-sonnet-5-5` through `CLAUDE_MODEL`.
