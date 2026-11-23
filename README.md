@@ -33,18 +33,20 @@ Full design: [EVENCAD_SPEC.md](EVENCAD_SPEC.md). SDK facts: [docs/sdk-notes.md](
 
 ## What works today
 
-The thin end-to-end slice, with typed text instead of voice:
+The end-to-end slice, by voice or by typed text:
 
-typed text → Claude (interpreter) → typed operations → ShaftSpec → validation → drawing on the glasses (simulator) → STEP, DXF, PDF.
+speech → Whisper (on our server) → text → Claude (interpreter) → typed operations → ShaftSpec → validation → drawing on the glasses (simulator) → STEP, DXF, PDF.
 
 - Operations, undo, validation (errors and warnings) and read-back, all in plain code with tests.
 - One vector model of the side view. It feeds the glasses image, the DXF and the PDF.
 - Glasses page: status line, drawing (two 288 × 144 image tiles), read-back and warnings.
-- Tap on the glasses accepts a warning. Double tap opens the system exit dialog.
+- Tap on the glasses starts listening. It stops after 1.5 s of silence, on a second tap, or after 20 s.
+- Tap also accepts a warning. Double tap opens the system exit dialog.
+- Speech to text runs on the backend with faster-whisper (`base.en`, about 1 s per sentence on a laptop CPU).
 - `finish` makes `data/out/<session id>/shaft.step`, `shaft.dxf`, `shaft.pdf`.
 - Phone page `/s/<session id>`: downloads and the human "Approve for review" step.
 
-Not built yet: voice (STT), Google Drive upload, the Anthropic API adapter, real G2 test.
+Not built yet: Google Drive upload, the Anthropic API adapter, real G2 test.
 Until the API adapter exists, set `INTERPRETER=cli` (needs a logged-in Claude Code CLI).
 
 ![The slice in the simulator](docs/img/slice-2-ask.png)
@@ -92,7 +94,14 @@ See [.env.example](.env.example). Keys live only on the server, in `.env`. `.env
 
 ## Input mapping
 
-*TODO* — decided after the real G2 test. Double tap is reserved for exit (store rule).
+Current mapping (simulator). It is checked again on real G2.
+
+| Input | Action |
+|---|---|
+| Tap (temple or R1 ring) | start listening / stop listening / accept a warning |
+| Double tap | system exit dialog (store rule) |
+| Voice: "undo", "finish" | undo the last change / build the files |
+| Swipe up, swipe down, long press | not used yet |
 
 ## Tests
 
@@ -104,7 +113,8 @@ See [.env.example](.env.example). Keys live only on the server, in `.env`. `.env
 
 ## Privacy and safety
 
-- Audio is deleted right after speech-to-text. *TODO: implemented with STT.*
+- Audio is never stored. One sentence is held in memory, turned into text, and dropped. A test checks that no audio reaches the disk.
+- The microphone is open only while the display says "Listening".
 - No secrets in the glasses app. All external calls go through our backend.
 - Every PDF carries "DRAFT – requires engineering approval" until a human approves it.
 - Tests and the demo use made-up parts only.
@@ -126,6 +136,7 @@ Only the specification ([EVENCAD_SPEC.md](EVENCAD_SPEC.md)). No code.
 | ezdxf | DXF with dimensions, DXF → PDF drawing | MIT |
 | Matplotlib | PDF backend | PSF-style (BSD compatible) |
 | Pillow | glasses image | MIT-CMU |
+| faster-whisper (CTranslate2, Whisper `base.en` model) | speech to text on the server | MIT |
 | pytest, httpx, pypdf | tests | MIT, BSD-3-Clause, BSD-3-Clause |
 | Claude Code CLI | interpreter during development only | Anthropic terms |
 

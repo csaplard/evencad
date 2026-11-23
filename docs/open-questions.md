@@ -32,3 +32,10 @@ Each item has a safe default. We work with the default until we know more.
 19. **Interpreter speed.** The CLI adapter takes about 8 seconds per sentence. This is expected (spec 4a). Speed is measured only with the API adapter.
 20. **Tap mapping.** Today tap only accepts a warning. With voice, tap will start and stop listening. Swipe is still free.
 21. **Session code on the DONE screen.** The glasses show the last 6 characters of the session id. A real pairing flow (short code → phone page) is still open.
+
+## Added with voice (Nov 23)
+
+22. **STT model.** Default `base.en`: about 1 s per sentence on this laptop CPU, correct on four clean test sentences (computer voice). `small.en` took about 3 s. Not tested yet: a human voice, a noisy workshop, the G2 microphones. Decide the model on real G2.
+23. **Silence detection.** The app stops after 1.5 s below a fixed level (RMS 700). The level is a guess. The glasses audio is already processed, so it must be tuned on real G2.
+24. **No spoken test in the simulator yet.** The simulator uses the PC microphone. Frames arrive and the silent case works ("I did not hear anything"). A person has to speak to test the full path there.
+25. **First STT call is slow.** The Whisper model downloads (about 150 MB) and loads on the first sentence. The server should warm it up at start.
