@@ -90,3 +90,8 @@ Each item has a safe default. We work with the default until we know more.
 53. **One keyway per segment, centred, on top.** There is no position along the segment and no angle. The drawing note says "centred". Add an offset only if the demo needs it.
 54. **No keyway dimensions as DIMENSION entities.** The sheet has a text note with width, length and depth. There is no section view that shows the depth.
 55. **Tolerances are not on the drawing.** The standard also gives fits for the width (P9, N9). They are not shown.
+
+## Added with the mass (Nov 23)
+
+56. **Density table.** `server/core/mass.py` has ten material families with handbook densities. The name match is by pattern ("C45", "1.4301", "6082", "CuZn39Pb3"). Dániel: check the values and add the materials you use. An unknown name gives no mass, never a guess.
+57. **The mass is an estimate.** The volume formula agrees with the CAD model within 0.2 % in the tests (the round keyway ends are approximated). The title block says "estimate".

@@ -12,6 +12,8 @@ export interface SessionState {
   id: string
   spec: { segments: unknown[]; status: string }
   readback: string
+  // Mass estimate. null when the material is not in the density table.
+  mass: { kg: number; text: string; material: string; density: number } | null
   validation: { errors: Message[]; warnings: Message[] }
   can_undo: boolean
   finished: boolean

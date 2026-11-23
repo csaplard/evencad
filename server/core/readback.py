@@ -5,6 +5,7 @@ Example: "3 steps  Ø30×40  Ø25×60  Ø20×30  C1 right  L130"
 """
 
 from server.core.keyway import keyway_size
+from server.core.mass import mass
 from server.core.spec import Chamfer, ShaftSpec, fmt
 
 MAX_CHARS = 90  # about two lines on the 576 px display
@@ -25,6 +26,9 @@ def readback(spec: ShaftSpec) -> str:
     head = f"{n} step" + ("" if n == 1 else "s")
     dims = [f"Ø{fmt(s.diameter)}×{fmt(s.length)}" for s in segs]
     tail = f"L{fmt(spec.total_length)}"
+    m = mass(spec)  # only when the material is in the density table
+    if m:
+        tail += SEP + m["text"]
 
     chamfers = []
     for i, s in enumerate(segs, start=1):

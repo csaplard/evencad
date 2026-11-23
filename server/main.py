@@ -20,6 +20,7 @@ from pydantic import BaseModel, Field
 
 from server.ai.interpreter import Interpreter, InterpreterError, get_interpreter
 from server.ai.stt import MAX_WAV_BYTES, AudioError, SttError, SttProvider, get_stt, wav_to_pcm
+from server.core.mass import mass
 from server.core.guide import is_rejection, next_step, parse_number
 from server.core.ops import AddSegment, Finish, OpError, Undo, active_after, apply_ops
 from server.core.readback import readback
@@ -141,6 +142,7 @@ def create_app(
             "id": spec.id,
             "spec": spec.model_dump(mode="json"),
             "readback": readback(spec),
+            "mass": mass(spec),
             "validation": report.model_dump(),
             "can_undo": bool(session.history) or session.pending_diameter is not None,
             "active_segment": active_of(session),

@@ -12,6 +12,7 @@ from ezdxf.document import Drawing as DxfDoc
 from ezdxf.enums import TextEntityAlignment
 
 from server.core.keyway import STANDARD
+from server.core.mass import mass
 from server.core.spec import ShaftSpec, fmt
 from server.draw.model import Style, draw_shaft
 
@@ -121,6 +122,10 @@ def _frame_and_title(msp, spec: ShaftSpec, scale_name: str):
     text(spec.title, x0 + 4, y0 + 26, h=7)
     text("EvenCAD – stepped shaft, side view", x0 + 4, y0 + 16)
     text(f"Total length {fmt(spec.total_length)}   Max diameter {fmt(spec.max_diameter)}", x0 + 4, y0 + 8)
+
+    m = mass(spec)
+    if m:
+        text(f"Mass: {m['text']} ({m['material']}, {fmt(m['density'])} g/cm³) – estimate", x0 + 4, y0 + 2.5, h=2.5)
 
     rows_left = [f"Material: {spec.material or '-'}", "Units: mm", f"Scale: {scale_name}", f"Date: {date.today().isoformat()}"]
     approved = spec.status == "approved" and spec.approved_by
