@@ -36,6 +36,7 @@ class Session(BaseModel):
     history: list[Turn] = Field(default_factory=list)  # undo stack
     log: list[dict] = Field(default_factory=list)  # everything that happened, never shortened
     finished: bool = False
+    drive: Optional[dict] = None  # result of the last Google Drive upload
 
     def record(self, event: str, **data) -> None:
         self.log.append({"at": now_iso(), "event": event, **data})

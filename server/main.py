@@ -9,7 +9,7 @@ import os
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.concurrency import run_in_threadpool
@@ -22,6 +22,7 @@ from server.ai.stt import MAX_WAV_BYTES, AudioError, SttError, SttProvider, get_
 from server.core.ops import Finish, OpError, Undo, apply_ops
 from server.core.readback import readback
 from server.core.validation import validate
+from server.drive import DriveError, DriveUploader, get_uploader
 from server.draw.glasses import glasses_png, glasses_tiles
 from server.export import FILE_NAMES, export_all, rebuild_sheets
 from server.sessions import Session, SessionStore, Turn, now_iso
@@ -45,7 +46,7 @@ class ApproveIn(BaseModel):
 
 def _load_env_file(path: Path = Path(".env")) -> None:
     """Tiny .env reader: KEY=value lines. Real environment variables win."""
-    if not path.exists():
+    if os.environ.get("EVENCAD_SKIP_DOTENV") or not path.exists():
         return
     for line in path.read_text(encoding="utf-8").splitlines():
         line = line.strip()
@@ -63,11 +64,13 @@ def create_app(
     data_dir: Optional[Path] = None,
     interpreter: Optional[Interpreter] = None,
     stt: Optional[SttProvider] = None,
+    drive: Union[DriveUploader, None, str] = "auto",
 ) -> FastAPI:
+    """`drive`: an uploader, None (off), or "auto" (set up from the environment on first use)."""
     _load_env_file()
     data_dir = Path(data_dir or os.environ.get("DATA_DIR", "data"))
     store = SessionStore(data_dir)
-    holder = {"interpreter": interpreter, "stt": stt}
+    holder = {"interpreter": interpreter, "stt": stt, "drive": drive}
 
     app = FastAPI(title="EvenCAD", version="0.2.0")
 
@@ -97,6 +100,28 @@ def create_app(
             holder["stt"] = get_stt()
         return holder["stt"]
 
+    def upload_to_drive(session: Session, kinds: Optional[list[str]] = None) -> None:
+        """Copy the output files to Google Drive. A Drive problem never blocks the drawing."""
+        sid = session.spec.id
+        t0 = time.perf_counter()
+        try:
+            if holder["drive"] == "auto":
+                holder["drive"] = get_uploader()
+            uploader = holder["drive"]
+            if uploader is None:
+                session.drive = None
+                return
+            paths = {k: store.out_dir(sid) / name for k, name in FILE_NAMES.items() if not kinds or k in kinds}
+            result = uploader.upload(sid, paths)
+            previous = (session.drive or {}).get("files", {}) if (session.drive or {}).get("status") == "ok" else {}
+            session.drive = {"status": "ok", "folder_url": result["folder_url"], "files": {**previous, **result["files"]}, "at": now_iso()}
+            session.record("drive_upload", files=sorted(result["files"]), ms=round((time.perf_counter() - t0) * 1000))
+        except DriveError as e:
+            holder["drive"] = "auto"  # try to set up again next time
+            session.drive = {"status": "error", "message": str(e)}
+            session.record("drive_error", message=str(e))
+            log.warning("drive upload failed for %s: %s", sid, e)
+
     def state(session: Session, **extra) -> dict:
         """The one answer shape for every session call."""
         spec = session.spec
@@ -112,6 +137,7 @@ def create_app(
             "can_undo": bool(session.history),
             "finished": session.finished,
             "files": files,
+            "drive": session.drive if session.finished else None,
             "phone_page": f"/s/{spec.id}",
             "heard": None,
             "ask": None,
@@ -139,6 +165,7 @@ def create_app(
         export_all(session.spec, store.out_dir(session.spec.id))
         session.finished = True
         session.record("finish", warnings_confirmed=[m.code for m in report.warnings], export_ms=round((time.perf_counter() - t0) * 1000))
+        upload_to_drive(session)
         return {}
 
     @app.get("/health")
@@ -269,6 +296,7 @@ def create_app(
         session.spec.approved_by = body.name.strip()
         session.spec.approved_at = datetime.now(timezone.utc)
         rebuild_sheets(session.spec, store.out_dir(sid))
+        upload_to_drive(session, kinds=["dxf", "pdf"])
         session.record("approved", by=session.spec.approved_by)
         store.save(session)
         return state(session)
@@ -305,6 +333,11 @@ async function approve(ev) {{
   if (r.ok) location.reload(); else alert('Approval failed');
 }}
 </script>"""
+        drive = st.get("drive") or {}
+        if drive.get("status") == "ok":
+            links += f'<a class="btn drive" href="{e(drive["folder_url"])}">Google Drive folder</a>'
+        elif drive.get("status") == "error":
+            mark += f"<p class='draft'>Google Drive: {e(drive['message'])}</p>"
         body = f"{mark}<p class='files'>{links}</p>{form}"
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1"><title>{e(spec.title)} – EvenCAD</title>
@@ -312,7 +345,7 @@ async function approve(ev) {{
 body{{font:16px/1.5 system-ui,sans-serif;margin:0;padding:20px;max-width:560px;margin:auto;background:#111;color:#eee}}
 img{{width:100%;background:#000;border:1px solid #333}} .btn,button{{display:inline-block;margin:6px 8px 6px 0;padding:12px 18px;
 border-radius:8px;background:#2e7d32;color:#fff;text-decoration:none;border:0;font-size:16px}}
-.draft{{color:#ffb300;font-weight:600}} .ok{{color:#66bb6a;font-weight:600}} input{{font-size:16px;padding:8px;width:100%;box-sizing:border-box;margin:6px 0}}
+.drive{{background:#1565c0}} .draft{{color:#ffb300;font-weight:600}} .ok{{color:#66bb6a;font-weight:600}} input{{font-size:16px;padding:8px;width:100%;box-sizing:border-box;margin:6px 0}}
 code{{color:#9e9e9e}}
 </style></head><body>
 <h1>{e(spec.title)}</h1>
