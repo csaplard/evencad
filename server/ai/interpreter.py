@@ -129,11 +129,75 @@ class ClaudeCliInterpreter:
         return interpret_with(self._complete, spec, utterance)
 
 
+DEFAULT_API_MODEL = "claude-haiku-5-5"  # the spec asks for a fast model; override with CLAUDE_MODEL
+
+
+class AnthropicApiInterpreter:
+    """Default adapter: the Anthropic API through the official SDK.
+
+    Same prompt and same JSON as the CLI adapter. Tuned for speed:
+    thinking off, low effort, a short output limit, a short timeout.
+    No sampling parameters are sent: current models reject non-default values.
+    """
+
+    def __init__(self, model: Optional[str] = None, client=None, timeout: float = 20.0):
+        import anthropic  # imported here so the CLI adapter works without the package
+
+        self._anthropic = anthropic
+        self.model = model or os.environ.get("CLAUDE_MODEL") or DEFAULT_API_MODEL
+        self.last_usage: Optional[dict] = None
+        if client is not None:
+            self._client = client
+        else:
+            try:
+                # Reads ANTHROPIC_API_KEY (or another configured credential) from the environment.
+                self._client = anthropic.Anthropic(timeout=timeout, max_retries=1)
+            except anthropic.AnthropicError as e:
+                raise InterpreterError(f"Anthropic API is not set up (set ANTHROPIC_API_KEY in .env): {e}") from e
+
+    def _complete(self, system: str, user: str) -> str:
+        a = self._anthropic
+        try:
+            response = self._client.messages.create(
+                model=self.model,
+                max_tokens=1024,  # the answer is a few short operations
+                system=system,
+                thinking={"type": "disabled"},
+                output_config={"effort": "low"},
+                messages=[{"role": "user", "content": user}],
+            )
+        except TypeError as e:
+            # The SDK raises this when it finds no credential at request time.
+            raise InterpreterError(f"Anthropic API is not set up (set ANTHROPIC_API_KEY in .env): {e}") from e
+        except a.AuthenticationError as e:
+            raise InterpreterError("Anthropic API key is missing or not valid (ANTHROPIC_API_KEY)") from e
+        except a.PermissionDeniedError as e:
+            raise InterpreterError("The Anthropic API key may not use this model") from e
+        except a.NotFoundError as e:
+            raise InterpreterError(f"Unknown model: {self.model} (CLAUDE_MODEL)") from e
+        except a.RateLimitError as e:
+            raise InterpreterError("Anthropic API rate limit reached, try again") from e
+        except a.APIStatusError as e:
+            raise InterpreterError(f"Anthropic API error {e.status_code}") from e
+        except a.APIConnectionError as e:  # includes timeouts
+            raise InterpreterError("Cannot reach the Anthropic API") from e
+
+        usage = getattr(response, "usage", None)
+        if usage is not None:
+            self.last_usage = {"input_tokens": usage.input_tokens, "output_tokens": usage.output_tokens}
+        # A refusal or a cut-off answer is not valid output. The shared flow retries once, then asks.
+        if response.stop_reason != "end_turn":
+            return ""
+        return "".join(block.text for block in response.content if block.type == "text")
+
+    def interpret(self, spec: ShaftSpec, utterance: str) -> InterpreterResult:
+        return interpret_with(self._complete, spec, utterance)
+
+
 def get_interpreter(kind: Optional[str] = None) -> Interpreter:
-    kind = (kind or os.environ.get("INTERPRETER", "api")).lower()
+    kind = (kind or os.environ.get("INTERPRETER") or "api").lower()
     if kind == "cli":
         return ClaudeCliInterpreter()
     if kind == "api":
-        # Planned for Nov 25-27 (spec section 4a). Until then, set INTERPRETER=cli.
-        raise InterpreterError("The API interpreter is not built yet. Set INTERPRETER=cli for development.")
+        return AnthropicApiInterpreter()
     raise InterpreterError(f"Unknown INTERPRETER value: {kind}")
