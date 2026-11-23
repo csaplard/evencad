@@ -106,3 +106,9 @@ Each item has a safe default. We work with the default until we know more.
 60. **Token in the link.** The phone page link has the token as `?k=`. It can show up in server logs and in the browser history. This is fine for the hackathon. For a real launch use a short-lived pairing code that the phone trades for a cookie.
 61. **Sessions made before this change have no token.** They cannot be opened any more. Delete `data/sessions` if old test sessions are in the way.
 62. **No rate limit.** Nothing stops many wrong tokens or many new sessions. Add a limit before the backend is public for long.
+
+## Added with the AI hints (Nov 23)
+
+63. **Hints run in the background.** The finish does not wait for them. With the Claude CLI adapter one review took about 50 s in a test. With the API it should take a few seconds, but this was not measured (no API key on this machine). Reload the phone page to see the hints.
+64. **Hints are not on the glasses and not on the drawing.** AI text is kept off the sheet on purpose. Decide if one hint line on the glasses would help.
+65. **Quality of the hints.** Two samples were looked at by hand. They were sensible but a bit generic ("chamfers are not mentioned"). Tune `REVIEW_PROMPT` in `server/ai/reviewer.py` after real use.

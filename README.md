@@ -65,6 +65,8 @@ speech → Whisper (on our server) → text → Claude (interpreter) → typed o
   cast iron, aluminium, brass, bronze, copper, titanium, POM, PA6). An unknown material shows no mass.
 - Revisions: each finish of a changed drawing gets the next letter (A, B, ...). It is in the title block. Old revisions stay on the phone page.
   Any change after an approval makes the drawing a DRAFT again.
+- AI hints: after `finish` a second model call looks at the shaft and gives up to three short hints (for example "Could segment 3 diameter be 30 not 13?").
+  They are on the phone page only, marked as hints. They cannot change, approve or block anything. `REVIEWER=off` turns them off.
 - Tap also accepts a warning. Double tap opens the system exit dialog.
 - Swipe turns the drawing: 2D side view with dimensions, then a 3D line view at 30°, 60°, 90° (end view), 120°, 150°.
   The glasses show images only, so the 3D view turns in steps, one image per step.

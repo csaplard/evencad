@@ -12,6 +12,7 @@ import io
 import logging
 import os
 import re
+import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -23,6 +24,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
 
+from server.ai.reviewer import Reviewer, get_reviewer
 from server.ai.interpreter import Interpreter, InterpreterError, get_interpreter
 from server.ai.stt import MAX_WAV_BYTES, AudioError, SttError, SttProvider, get_stt, wav_to_pcm
 from server.core.mass import mass
@@ -90,6 +92,8 @@ def create_app(
     stt: Optional[SttProvider] = None,
     drive: Union[DriveUploader, None, str] = "auto",
     auth: bool = True,
+    reviewer: Union[Reviewer, None, str] = "auto",
+    review_in_background: bool = True,
 ) -> FastAPI:
     """`drive`: an uploader, None (off), or "auto" (set up from the environment on first use).
 
@@ -98,7 +102,7 @@ def create_app(
     _load_env_file()
     data_dir = Path(data_dir or os.environ.get("DATA_DIR", "data"))
     store = SessionStore(data_dir)
-    holder = {"interpreter": interpreter, "stt": stt, "drive": drive}
+    holder = {"interpreter": interpreter, "stt": stt, "drive": drive, "reviewer": reviewer}
 
     app = FastAPI(title="EvenCAD", version="0.2.0")
 
@@ -190,6 +194,7 @@ def create_app(
             "guide": None if session.finished else next_step(spec, session.pending_diameter),
             "finished": session.finished,
             "revision": spec.revision if session.finished else None,
+            "review": session.review if session.finished and (session.review or {}).get("revision") == spec.revision else None,
             "files": files,
             "drive": session.drive if session.finished else None,
             "phone_page": f"/s/{spec.id}{key}",
@@ -225,6 +230,33 @@ def create_app(
         session.record("undo", undone=turn.ops)
         return None
 
+    def start_review(session: Session) -> None:
+        """Ask the reviewer for hints on this revision. It runs beside the finish and never blocks it."""
+        revision = session.spec.revision
+        if session.review and session.review.get("revision") == revision:
+            return
+        try:
+            if holder["reviewer"] == "auto":
+                holder["reviewer"] = get_reviewer(the_interpreter())
+        except InterpreterError:
+            return  # no model: no hints. "auto" stays, so a later finish tries again.
+        the_reviewer = holder["reviewer"]
+        if the_reviewer is None:
+            return
+        spec = session.spec.model_copy(deep=True)
+
+        def work():
+            notes = the_reviewer.review(spec, validate(spec))
+            if session.spec.revision == revision:
+                session.review = {"revision": revision, "notes": notes}
+                session.record("review", revision=revision, notes=notes)
+                store.save(session)
+
+        if review_in_background:
+            threading.Thread(target=work, name="review", daemon=True).start()
+        else:
+            work()
+
     def archive(out: Path, revision: str) -> None:
         """Keep a copy of each revision in its own folder."""
         keep = out / f"rev_{revision}"
@@ -251,6 +283,7 @@ def create_app(
         session.finished = True
         session.record("finish", revision=session.spec.revision, warnings_confirmed=[m.code for m in report.warnings], export_ms=round((time.perf_counter() - t0) * 1000))
         upload_to_drive(session)
+        start_review(session)
         return {}
 
     @app.get("/health")
@@ -493,7 +526,12 @@ async function approve(ev) {{
         if older:
             items = " · ".join(f'<a href="/session/{e(spec.id)}/files/pdf?rev={e(r)}{e(and_key)}">{e(r)} (PDF)</a>' for r in older)
             history = f"<p class='old'>Older revisions: {items}</p>"
-        body = f"<p>Revision {e(spec.revision or '-')}</p>{mark}<p class='files'>{links}</p>{form}{history}"
+        hints = ""
+        notes = (st.get("review") or {}).get("notes")
+        if notes:
+            items = "".join(f"<li>{e(n)}</li>" for n in notes)
+            hints = f"<div class='hints'><b>AI hints</b> – things to look at again. This is not a check.<ul>{items}</ul></div>"
+        body = f"<p>Revision {e(spec.revision or '-')}</p>{mark}<p class='files'>{links}</p>{hints}{form}{history}"
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1"><title>{e(spec.title)} – EvenCAD</title>
 <style>
@@ -501,7 +539,7 @@ body{{font:16px/1.5 system-ui,sans-serif;margin:0;padding:20px;max-width:560px;m
 img{{width:100%;background:#000;border:1px solid #333}} .btn,button{{display:inline-block;margin:6px 8px 6px 0;padding:12px 18px;
 border-radius:8px;background:#2e7d32;color:#fff;text-decoration:none;border:0;font-size:16px}}
 .drive{{background:#1565c0}} .draft{{color:#ffb300;font-weight:600}} .ok{{color:#66bb6a;font-weight:600}} input{{font-size:16px;padding:8px;width:100%;box-sizing:border-box;margin:6px 0}}
-code{{color:#9e9e9e}} .old a{{color:#90caf9}}
+code{{color:#9e9e9e}} .old a{{color:#90caf9}} .hints{{border:1px solid #555;border-radius:8px;padding:10px 14px;margin:12px 0;color:#ccc}} .hints ul{{margin:6px 0 0;padding-left:20px}}
 </style></head><body>
 <h1>{e(spec.title)}</h1>
 <p><code>{e(spec.id)}</code></p>

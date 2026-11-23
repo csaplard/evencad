@@ -18,6 +18,8 @@ export interface SessionState {
   can_undo: boolean
   finished: boolean
   revision: string | null
+  // AI hints for this revision. Shown on the phone page. They are not a check.
+  review: { revision: string; notes: string[] } | null
   files: Record<string, string>
   phone_page: string
   views_3d: number[]
