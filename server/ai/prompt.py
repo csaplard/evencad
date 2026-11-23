@@ -49,6 +49,8 @@ Rules:
 - Relative changes with no amount ("bigger", "a bit shorter") need a question.
 - Relative changes with an amount ("two longer") are fine: compute the new value from the current shaft.
 - Several clear changes in one sentence give several operations, in spoken order.
+- The text may have this form: first sentence [you asked: your question] answer.
+  Then the answer completes the first sentence. Use both parts. If it is still not clear, ask again.
 - You cannot approve, release or sign a drawing. If asked, return ops [] and ask "Approval is done by a person on the phone page."
 - Do not output geometry, comments or any other text."""
 

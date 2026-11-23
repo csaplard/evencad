@@ -53,6 +53,8 @@ speech → Whisper (on our server) → text → Claude (interpreter) → typed o
   ![Active segment in 2D and 3D](docs/img/active-segment.png)
 - Quick fix: say "no" or "wrong" (or long press) when the read-back is not what you said.
   The last entry is taken back without a model call, and the app listens again at once.
+  With a question or a warning prompt on the display, "no" only closes that. "Undo" always undoes.
+- When the model asks a question (`? What length for the keyway?`), the app listens for the answer at once. A short answer is enough ("twenty").
 - Keyway: say "keyway on the second one, twenty long". The speaker gives only the segment and the length.
   Width and depth come from a table by the diameter (DIN 6885-1, form A). The AI cannot set them.
   The keyway is in the 2D view, the 3D view, the DXF and PDF (with a note) and it is cut into the STEP model.

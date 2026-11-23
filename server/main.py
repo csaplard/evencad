@@ -3,6 +3,7 @@
 Run:  uvicorn server.main:app --reload --port 8000
 """
 
+import asyncio
 import hashlib
 import secrets
 import html
@@ -22,13 +23,13 @@ from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from server.ai.reviewer import Reviewer, get_reviewer
 from server.ai.interpreter import Interpreter, InterpreterError, get_interpreter
 from server.ai.stt import MAX_WAV_BYTES, AudioError, SttError, SttProvider, get_stt, wav_to_pcm
 from server.core.mass import mass
-from server.core.guide import is_rejection, next_step, parse_number
+from server.core.guide import is_rejection, is_undo, next_step, parse_number
 from server.core.ops import AddSegment, Finish, OpError, Undo, active_after, apply_ops
 from server.core.readback import readback
 from server.core.validation import validate
@@ -52,7 +53,15 @@ class FinishIn(BaseModel):
 
 
 class ApproveIn(BaseModel):
-    name: str = Field(min_length=2, max_length=60)
+    name: str = Field(max_length=60)
+
+    @field_validator("name")
+    @classmethod
+    def _a_real_name(cls, name: str) -> str:
+        name = " ".join(name.split())
+        if len(name) < 2:
+            raise ValueError("give the name of the person who approves")
+        return name
 
 
 def revision_name(n: int) -> str:
@@ -106,6 +115,8 @@ def create_app(
 
     app = FastAPI(title="EvenCAD", version="0.2.0")
 
+    session_locks: dict[str, asyncio.Lock] = {}
+    reviewing: set[tuple[str, str]] = set()  # (session id, revision) with a review in flight
     session_path = re.compile(rf"/(?:session|s)/({SESSION_ID_PATTERN})(?:/|$)")
 
     @app.middleware("http")
@@ -118,8 +129,14 @@ def create_app(
         if auth and found and request.method != "OPTIONS":
             session = store.get(found.group(1))
             given = request.headers.get("x-session-token") or request.query_params.get("k") or ""
-            if session is not None and not (session.token and secrets.compare_digest(given, session.token)):
+            ok = bool(session and session.token) and secrets.compare_digest(given.encode(), (session.token or "").encode())
+            if session is not None and not ok:
                 return JSONResponse(status_code=401, content={"detail": "Session token is missing or wrong"})
+        if found and request.method != "OPTIONS":
+            # One call at a time per session: two calls must not change the same session together.
+            lock = session_locks.setdefault(found.group(1), asyncio.Lock())
+            async with lock:
+                return await call_next(request)
         return await call_next(request)
 
     # The glasses app runs in a WebView. Its origin is not documented,
@@ -233,7 +250,8 @@ def create_app(
     def start_review(session: Session) -> None:
         """Ask the reviewer for hints on this revision. It runs beside the finish and never blocks it."""
         revision = session.spec.revision
-        if session.review and session.review.get("revision") == revision:
+        job = (session.spec.id, revision)
+        if (session.review and session.review.get("revision") == revision) or job in reviewing:
             return
         try:
             if holder["reviewer"] == "auto":
@@ -245,12 +263,17 @@ def create_app(
             return
         spec = session.spec.model_copy(deep=True)
 
+        reviewing.add(job)
+
         def work():
-            notes = the_reviewer.review(spec, validate(spec))
-            if session.spec.revision == revision:
-                session.review = {"revision": revision, "notes": notes}
-                session.record("review", revision=revision, notes=notes)
-                store.save(session)
+            try:
+                notes = the_reviewer.review(spec, validate(spec))
+                if session.spec.revision == revision:
+                    session.review = {"revision": revision, "notes": notes}
+                    session.record("review", revision=revision, notes=notes)
+                    store.save(session)
+            finally:
+                reviewing.discard(job)
 
         if review_in_background:
             threading.Thread(target=work, name="review", daemon=True).start()
@@ -270,11 +293,16 @@ def create_app(
         if not report.ok:
             return {"error": report.errors[0].text}
         if report.warnings and not confirm_warnings:
+            session.awaiting = {"kind": "confirm"}
             return {"needs_confirm": True}
         t0 = time.perf_counter()
-        # A new revision letter only when the drawing changed since the last finish.
+        session.pending_diameter = None  # a half-entered segment is not part of the drawing
+        # A new revision letter when the drawing changed since the last finish.
+        # Also when the last revision was approved and this one is a draft again:
+        # an approved revision is never overwritten.
         mark = _fingerprint(session.spec)
-        if not session.revisions or session.revisions[-1]["fingerprint"] != mark:
+        last = session.revisions[-1] if session.revisions else None
+        if last is None or last["fingerprint"] != mark or (last.get("approved") and session.spec.status == "draft"):
             session.revisions.append({"rev": revision_name(len(session.revisions) + 1), "at": now_iso(), "fingerprint": mark})
         session.spec.revision = session.revisions[-1]["rev"]
         out = store.out_dir(session.spec.id)
@@ -339,6 +367,15 @@ def create_app(
         sid = session.spec.id
         t0 = time.perf_counter()
 
+        # What was on the display when the person spoke: a question, a warning prompt, or nothing.
+        awaiting, session.awaiting = session.awaiting, None
+
+        # "No" or "cancel" with a question or a warning prompt on the display only dismisses it.
+        if awaiting and is_rejection(text) and not is_undo(text):
+            session.record("dismissed", utterance=text, what=awaiting["kind"])
+            store.save(session)
+            return state(session, heard=text, timing_ms={**timing, "interpret": 0})
+
         # Quick fix: "no" or "wrong" alone takes the last entry back. No model call.
         if is_rejection(text):
             problem = do_undo(session)
@@ -347,7 +384,9 @@ def create_app(
 
         # Guided measuring: a bare number answers the question on the display. No model call.
         field = "diameter" if session.pending_diameter is None else "length"
-        number = None if session.finished else parse_number(text, field)
+        asked = awaiting if awaiting and awaiting["kind"] == "ask" else None
+        # After a question a bare number is the answer to that question, not the next diameter.
+        number = None if session.finished or asked else parse_number(text, field)
         if number is not None:
             extra = {"heard": text, "timing_ms": {**timing, "interpret": 0}}
             if field == "diameter":
@@ -371,8 +410,10 @@ def create_app(
             store.save(session)
             return state(session, **extra)
 
+        # The model has no memory. After a question it gets the first sentence, its own question and the answer.
+        said = f'{asked["utterance"]} [you asked: {asked["ask"]}] {text}'[:500] if asked else text
         try:
-            result = the_interpreter().interpret(session.spec, text)
+            result = the_interpreter().interpret(session.spec, said)
         except InterpreterError as e:
             raise HTTPException(status_code=503, detail=str(e)) from e
         timing["interpret"] = round((time.perf_counter() - t0) * 1000)
@@ -380,6 +421,7 @@ def create_app(
         extra: dict = {"heard": text, "timing_ms": timing}
 
         if result.ask:
+            session.awaiting = {"kind": "ask", "ask": result.ask, "utterance": said if len(said) <= 300 else text}
             session.record("ask", utterance=text, ask=result.ask)
             store.save(session)
             return state(session, ask=result.ask, **extra)
@@ -415,6 +457,7 @@ def create_app(
     @app.post("/session/{sid}/undo")
     def undo(sid: str):
         session = load(sid)
+        session.awaiting = None
         problem = do_undo(session)
         store.save(session)
         return state(session, error=problem, undone=problem is None)
@@ -422,6 +465,7 @@ def create_app(
     @app.post("/session/{sid}/finish")
     def finish(sid: str, body: Optional[FinishIn] = None):
         session = load(sid)
+        session.awaiting = None
         extra = do_finish(session, confirm_warnings=bool(body and body.confirm_warnings))
         store.save(session)
         return state(session, **extra)
@@ -473,7 +517,9 @@ def create_app(
         if not session.finished:
             raise HTTPException(status_code=409, detail="Finish the drawing first")
         session.spec.status = "approved"
-        session.spec.approved_by = body.name.strip()
+        session.spec.approved_by = body.name
+        if session.revisions:
+            session.revisions[-1]["approved"] = True
         session.spec.approved_at = datetime.now(timezone.utc)
         rebuild_sheets(session.spec, store.out_dir(sid))
         archive(store.out_dir(sid), session.spec.revision or "A")

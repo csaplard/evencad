@@ -71,22 +71,34 @@ const shown: Record<string, string> = {}
 function setText(target: { id: number; name: string }, content: string) {
   if (shown[target.name] === content) return
   shown[target.name] = content
-  enqueue(() =>
-    bridge.textContainerUpgrade(
-      new TextContainerUpgrade({ containerID: target.id, containerName: target.name, content: content || ' ' }),
-    ),
-  )
+  enqueue(async () => {
+    try {
+      await bridge.textContainerUpgrade(
+        new TextContainerUpgrade({ containerID: target.id, containerName: target.name, content: content || ' ' }),
+      )
+    } catch (err) {
+      // The write failed: forget it, so the same text is sent again next time.
+      if (shown[target.name] === content) delete shown[target.name]
+      throw err
+    }
+  })
 }
 
-function pushDrawing(id: string, view: number | null) {
+function pushDrawing(id: string, view: number | null, key: string) {
   enqueue(async () => {
     const t0 = performance.now()
-    for (const [i, tile] of TILES.entries()) {
-      const bytes = await fetchTile(id, i as 0 | 1, view)
-      const result = await bridge.updateImageRawData(
-        new ImageRawDataUpdate({ containerID: tile.id, containerName: tile.name, imageData: bytes }),
-      )
-      if (result !== 'success') console.error('updateImageRawData:', tile.name, result)
+    try {
+      for (const [i, tile] of TILES.entries()) {
+        const bytes = await fetchTile(id, i as 0 | 1, view)
+        const result = await bridge.updateImageRawData(
+          new ImageRawDataUpdate({ containerID: tile.id, containerName: tile.name, imageData: bytes }),
+        )
+        if (result !== 'success') throw new Error(`updateImageRawData ${tile.name}: ${result}`)
+      }
+    } catch (err) {
+      // The picture on the glasses is old now. Forget the key, so the next redraw sends it again.
+      if (lastDrawn === key) lastDrawn = ''
+      throw err
     }
     console.log(`drawing pushed in ${Math.round(performance.now() - t0)} ms`)
   })
@@ -134,7 +146,7 @@ function redraw() {
   const drawingKey = JSON.stringify([state.spec.segments, state.active_segment, currentView()])
   if (drawingKey !== lastDrawn) {
     lastDrawn = drawingKey
-    pushDrawing(state.id, currentView())
+    pushDrawing(state.id, currentView(), drawingKey)
   }
 }
 
@@ -147,17 +159,22 @@ function turnView(step: 1 | -1) {
   redraw()
 }
 
-async function run(label: string, action: () => Promise<SessionState>) {
-  if (busy) return
+// Returns the new state, or null when the call did not run or failed.
+// Callers decide the next step from this answer, never from the old state.
+async function run(label: string, action: () => Promise<SessionState>): Promise<SessionState | null> {
+  if (busy) return null
   busy = true
   setText(STATUS, label)
   try {
-    show(await action())
+    const next = await action()
+    show(next)
+    return next
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     console.error(label, message)
     setText(STATUS, `! ${message}`.slice(0, 60))
     logLine(`Error: ${message}`)
+    return null
   } finally {
     busy = false
   }
@@ -169,17 +186,32 @@ const say = (text: string) => run(`"${text}" …`, () => sendUtterance(state!.id
 // Tap starts listening. It stops after 1.5 s of silence, on a second tap,
 // or after 20 s. The frames are sent as one WAV file and then dropped.
 let recorder: Recorder | null = null
+let starting = false // the microphone is being opened
+let inFront = true // the app is on the display. The microphone opens only then.
 
 async function startListening(prefix = '') {
-  if (!state || busy || recorder) return
-  const ok = await bridge.audioControl(true, AudioInputSource.Glasses)
+  if (!state || busy || recorder || starting || !inFront) return
+  starting = true
+  let ok = false
+  try {
+    ok = await bridge.audioControl(true, AudioInputSource.Glasses)
+  } finally {
+    starting = false
+  }
   if (!ok) {
     setText(STATUS, '! Microphone is not available')
     return
   }
+  if (!inFront) {
+    // The app left the front while the microphone was opening.
+    await bridge.audioControl(false)
+    return
+  }
   recorder = new Recorder()
   const g = state.guide
-  setText(STATUS, prefix + (g ? `Listening… segment ${g.segment} ${g.field}?` : 'Listening… tap to stop'))
+  // A question from the model stays on the status line while the app listens for the answer.
+  const waiting = g ? `Listening… segment ${g.segment} ${g.field}?` : 'Listening… tap to stop'
+  setText(STATUS, prefix.startsWith('?') ? prefix : prefix + waiting)
 }
 
 async function stopListening() {
@@ -194,11 +226,14 @@ async function stopListening() {
   console.log(`recorded ${rec.seconds.toFixed(1)} s`)
   const wav = rec.finish()
   const wasLength = state.guide?.field === 'length'
-  await run('Thinking…', () => sendAudio(state!.id, wav))
+  const next = await run('Thinking…', () => sendAudio(state!.id, wav))
+  if (!next || next.error) return // the error stays on the display. The next tap listens again.
   // Quick fix: "no" took the last entry back. Listen for the right value at once.
-  if (state?.undone) await startListening('Undone. ')
+  if (next.undone) await startListening('Undone. ')
+  // The model asked a question: listen for the answer at once.
+  else if (next.ask) await startListening(`? ${next.ask}`.slice(0, 58))
   // A diameter was just given: listen for its length at once, with no extra tap.
-  else if (!wasLength && state?.guide?.field === 'length' && !state.ask && !state.error) await startListening()
+  else if (!wasLength && next.guide?.field === 'length') await startListening()
 }
 
 // Long press = the same quick fix by hand: undo, then listen again.
@@ -208,8 +243,8 @@ async function undoAndListen() {
     recorder = null
     await bridge.audioControl(false)
   }
-  await run('Undo…', () => undo(state!.id))
-  if (state?.undone) await startListening('Undone. ')
+  const next = await run('Undo…', () => undo(state!.id))
+  if (next?.undone) await startListening('Undone. ')
 }
 
 function onTap() {
@@ -256,11 +291,18 @@ const unsubscribe = bridge.onEvenHubEvent(event => {
   if (textType === OsEventTypeList.SCROLL_BOTTOM_EVENT) return turnView(1)
   if (textType === OsEventTypeList.SCROLL_TOP_EVENT) return turnView(-1)
 
-  // The app left the front: the microphone must not stay open.
-  if (sysType === OsEventTypeList.FOREGROUND_EXIT_EVENT && recorder) {
-    recorder = null
-    bridge.audioControl(false)
-    setText(STATUS, 'EvenCAD · ready')
+  // The app left the front: the microphone must not stay open, and must not open by itself.
+  if (sysType === OsEventTypeList.FOREGROUND_EXIT_EVENT) {
+    inFront = false
+    if (recorder) {
+      recorder = null
+      bridge.audioControl(false)
+      setText(STATUS, 'EvenCAD · ready')
+    }
+    return
+  }
+  if (sysType === OsEventTypeList.FOREGROUND_ENTER_EVENT) {
+    inFront = true
     return
   }
 

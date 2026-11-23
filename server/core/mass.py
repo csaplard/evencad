@@ -16,17 +16,21 @@ from server.core.spec import ShaftSpec
 from server.core.validation import chamfer_depth
 
 # (name, density in g/cm³, pattern on the lower-case material text). The first match wins.
+_NO_NUM = r"(?<![\d.])"  # not inside another number: "1.6082" is a steel number, not alloy 6082
 _MATERIALS = [
-    ("stainless steel", 7.9, r"stainless|inox|\b1\.4\d{3}\b|\b(aisi\s*)?(304|316)l?\b|x\d+crni"),
-    ("cast iron", 7.2, r"cast iron|\bgj[ls]\b|\bgg[g]?\b"),
-    ("aluminium", 2.7, r"alumin|\balu\b|\ben aw\b|\b(6060|6061|6082|7075|5083|2024)\b|\bal(mg|si|cu|zn)"),
-    ("brass", 8.5, r"brass|\bcuzn|\bms\s?5[68]\b"),
+    ("stainless steel", 7.9, rf"stainless|inox|\b1\.4\d{{3}}(?!\d)|{_NO_NUM}\b(aisi\s*)?s?(304|316)l?(?!\d)|x\d+crni"),
+    ("cast iron", 7.2, r"cast iron|\bgj[ls]|\bggg?(?![a-z])"),
     ("bronze", 8.8, r"bronze|\bcusn"),
+    ("brass", 8.5, r"brass|\bcuzn|\bms\s?5[68](?!\d)"),
+    ("aluminium", 2.7, rf"alumin|\balu\b|\ben aw\b|{_NO_NUM}\b(6060|6061|6082|7075|5083|2024)(?!\d)|\bal(mg|si|cu|zn)"),
     ("copper", 8.96, r"copper"),
     ("titanium", 4.5, r"titan"),
     ("POM", 1.41, r"\bpom\b|delrin|acetal"),
     ("PA6", 1.14, r"\bpa\s?6\b|nylon|polyamide"),
-    ("steel", 7.85, r"steel|\bc\s?k?\s?\d{2}\b|\bs\d{3}\b|\be\d{3}\b|\bst\s?\d{2}\b|\d{2}(crmo|mncr|cr|nicrmo|crnimo)\w*|\b1\.[0-2]\d{3}\b|\b1\.[5-8]\d{3}\b"),
+    ("steel", 7.85, (
+        r"steel|^c\s?k?\s?\d{2}[a-z]?$|\bck?\d{2}[a-z]?\b|\b[se][2-9]\d{2}(?!\d)|\bst\s?\d{2}(?!\d)"
+        r"|\d{2}(crmo|mncr|cr|nicrmo|crnimo)\w*|\b1\.[0-35-8]\d{3}(?!\d)|\baisi\s*[1-9]\d{3}(?!\d)"
+    )),
 ]
 
 

@@ -112,3 +112,18 @@ Each item has a safe default. We work with the default until we know more.
 63. **Hints run in the background.** The finish does not wait for them. With the Claude CLI adapter one review took about 50 s in a test. With the API it should take a few seconds, but this was not measured (no API key on this machine). Reload the phone page to see the hints.
 64. **Hints are not on the glasses and not on the drawing.** AI text is kept off the sheet on purpose. Decide if one hint line on the glasses would help.
 65. **Quality of the hints.** Two samples were looked at by hand. They were sensible but a bit generic ("chamfers are not mentioned"). Tune `REVIEW_PROMPT` in `server/ai/reviewer.py` after real use.
+
+## Independent code review (Nov 23, evening)
+
+A second agent reviewed the code of the day. It found 14 issues. All are fixed, each with a test in `tests/test_review_fixes.py`.
+
+66. **Fixed: approval with a blank name.** The name is trimmed first and must have two characters.
+67. **Fixed: "no" could delete the wrong thing.** With a question or a warning prompt on the display, "no" or "cancel" now only dismisses it. "Undo" always undoes.
+68. **Fixed: a bare number after a question.** It now goes to the model together with the first sentence and the question, in the form `first sentence [you asked: question] answer`. The app listens for the answer at once.
+69. **Fixed: the keyway could sit on a chamfer.** It is centred on the cylindrical part between the chamfers.
+70. **Fixed: an approved revision could be overwritten.** A finish after an approval reset always gets a new letter.
+71. **Fixed in the app:** the microphone cannot open while the app is in the background, two quick taps cannot open it twice, a failed call no longer starts listening again, a failed image send is sent again.
+72. **Fixed: density table.** "Aluminium bronze", "1.6082", "S316", "S235JR", "C45E", "GG25" and others now match the right family or none.
+73. **Fixed: smaller items.** A non-ASCII token gives 401, not 500. Session files are written in one step. One call at a time per session. Finish drops a half-entered diameter. "25?" is not read as a number.
+74. **Still open from the review.** The token is in `?k=` links, so it is in access logs (item 60). The session lock is in memory, so it works for one server process only.
+75. **Auto-listen after a question is new.** Check on real G2 that it feels right. A model that keeps asking would keep the microphone cycle going until the user is silent for 20 s or taps.

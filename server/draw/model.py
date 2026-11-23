@@ -98,13 +98,16 @@ def profile(spec: ShaftSpec) -> list[Point]:
 
 
 def slots(spec: ShaftSpec) -> list[Slot]:
-    """One slot per keyway that has a table size. It sits in the middle of its segment."""
+    """One slot per keyway that has a table size. It sits in the middle of the cylindrical part,
+    between the chamfers of its segment."""
     out: list[Slot] = []
     x = 0.0
     for i, s in enumerate(spec.segments, start=1):
         size = keyway_size(s.diameter) if s.keyway else None
         if size and s.keyway.length > size.width:
-            mid = x + s.length / 2
+            left = x + (s.chamfer_left.size if s.chamfer_left else 0)
+            right = x + s.length - (s.chamfer_right.size if s.chamfer_right else 0)
+            mid = (left + right) / 2
             out.append(Slot(mid - s.keyway.length / 2, mid + s.keyway.length / 2, size.width, size.depth, i, s.diameter / 2))
         x += s.length
     return out

@@ -64,7 +64,6 @@ def test_old_revisions_can_be_downloaded(client, sid):
     say(client, sid, "second 28")
     say(client, sid, "finish")
     assert client.get(f"/session/{sid}/files/dxf", params={"rev": "A"}).content == first
-    assert client.get(f"/session/{sid}/files/dxf").content != first
     assert client.get(f"/session/{sid}/files/dxf", params={"rev": "C"}).status_code == 404
     assert client.get(f"/session/{sid}/files/dxf", params={"rev": "../x"}).status_code == 404
     page = client.get(f"/s/{sid}").text

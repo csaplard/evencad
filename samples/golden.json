@@ -59,7 +59,7 @@
     "expect": {
       "ask": true
     },
-    "recorded": "```json\n{\"ops\": [], \"ask\": \"Do you mean diameter 15 or 50?\"}\n```"
+    "recorded": "```json\n{\"ops\": [], \"ask\": \"Is the diameter 15 or 50?\"}\n```"
   },
   {
     "name": "thirteen_thirty",
@@ -77,7 +77,7 @@
     "expect": {
       "ask": true
     },
-    "recorded": "```json\n{\"ops\": [], \"ask\": \"Diameter 13 mm or 30 mm?\"}\n```"
+    "recorded": "```json\n{\"ops\": [], \"ask\": \"Is the diameter 13.3 mm or 15.3 mm?\"}\n```"
   },
   {
     "name": "make_it_bigger",
@@ -99,7 +99,7 @@
     "expect": {
       "ask": true
     },
-    "recorded": "```json\n{\n  \"ops\": [],\n  \"ask\": \"Which segment, and by how much bigger?\"\n}\n```"
+    "recorded": "```json\n{\"ops\": [], \"ask\": \"Which segment and by how many mm?\"}\n```"
   },
   {
     "name": "chamfer_right_end",
@@ -157,7 +157,7 @@
     "expect": {
       "ask": true
     },
-    "recorded": "{\"ops\": [], \"ask\": \"What length for the new segment?\"}"
+    "recorded": "```json\n{\"ops\": [], \"ask\": \"What is the length of the new segment?\"}\n```"
   },
   {
     "name": "relative_with_amount",
@@ -313,7 +313,7 @@
     "expect": {
       "ask": true
     },
-    "recorded": "{\"ops\": [], \"ask\": \"Approval is done by a person on the phone page.\"}"
+    "recorded": "```json\n{\"ops\": [], \"ask\": \"Approval is done by a person on the phone page.\"}\n```"
   },
   {
     "name": "keyway_clear",
@@ -355,7 +355,7 @@
     "expect": {
       "ask": true
     },
-    "recorded": "```json\n{\"ops\": [], \"ask\": \"What length should the keyway be?\"}\n```"
+    "recorded": "```json\n{\n  \"ops\": [],\n  \"ask\": \"What is the keyway length in millimetres?\"\n}\n```"
   },
   {
     "name": "keyway_width_is_ignored",
@@ -445,6 +445,54 @@
     "expect": {
       "ask": true
     },
-    "recorded": "```json\n{\"ops\": [], \"ask\": \"Apply to all segments or which one (1 or 2)?\"}\n```"
+    "recorded": "```json\n{\"ops\": [], \"ask\": \"Which segment should have this roughness: segment 1, segment 2, or both?\"}\n```"
+  },
+  {
+    "name": "answer_to_a_question",
+    "before": [
+      [
+        30,
+        40
+      ],
+      [
+        25,
+        60
+      ]
+    ],
+    "utterance": "add a keyway to the second segment [you asked: Keyway length?] twenty",
+    "expect": {
+      "ops": [
+        {
+          "op": "set_keyway",
+          "index": 2,
+          "length": 20
+        }
+      ]
+    },
+    "recorded": "```json\n{\"ops\": [{\"op\": \"set_keyway\", \"index\": 2, \"length\": 20}], \"ask\": null}\n```"
+  },
+  {
+    "name": "answer_fifteen_or_fifty",
+    "before": [
+      [
+        30,
+        40
+      ],
+      [
+        25,
+        60
+      ]
+    ],
+    "utterance": "add a segment diameter fifteen fifty, thirty long [you asked: Is the diameter 15 or 50 mm?] fifteen",
+    "expect": {
+      "ops": [
+        {
+          "op": "add_segment",
+          "diameter": 15,
+          "length": 30
+        }
+      ]
+    },
+    "recorded": "```json\n{\"ops\": [{\"op\": \"add_segment\", \"diameter\": 15, \"length\": 30, \"at\": null}], \"ask\": null}\n```"
   }
 ]

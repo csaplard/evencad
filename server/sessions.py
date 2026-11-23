@@ -4,6 +4,8 @@ The file holds the spec, the undo stack and an append-only log (audit trail).
 """
 
 import json
+import os
+import threading
 import re
 import secrets
 from datetime import datetime, timezone
@@ -39,6 +41,7 @@ class Session(BaseModel):
     log: list[dict] = Field(default_factory=list)  # everything that happened, never shortened
     finished: bool = False
     drive: Optional[dict] = None  # result of the last Google Drive upload
+    awaiting: Optional[dict] = None  # a question or a warning prompt is on the display: {kind, ask, utterance}
     review: Optional[dict] = None  # AI hints for one revision: {revision, notes}
     revisions: list[dict] = Field(default_factory=list)  # one entry per finished revision: rev, at, fingerprint
     active_segment: Optional[int] = None  # 1-based: the segment the last change touched
@@ -59,6 +62,7 @@ class SessionStore:
         self._dir = self.data_dir / "sessions"
         self._dir.mkdir(parents=True, exist_ok=True)
         self._cache: dict[str, Session] = {}
+        self._save_lock = threading.Lock()
 
     def out_dir(self, sid: str) -> Path:
         return self.data_dir / "out" / sid
@@ -88,8 +92,13 @@ class SessionStore:
     def save(self, session: Session) -> None:
         sid = session.spec.id
         self._cache[sid] = session
-        text = json.dumps(session.model_dump(mode="json"), indent=2)
-        self._path(sid).write_text(text, encoding="utf-8")
+        # Requests and the review thread may save the same session. Write a temp file,
+        # then swap it in, so a reader never sees half a file.
+        with self._save_lock:
+            text = json.dumps(session.model_dump(mode="json"), indent=2)
+            tmp = self._dir / f".{sid}.tmp"
+            tmp.write_text(text, encoding="utf-8")
+            os.replace(tmp, self._path(sid))
 
     def _path(self, sid: str) -> Path:
         return self._dir / f"{sid}.json"

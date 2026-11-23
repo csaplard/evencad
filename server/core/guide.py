@@ -25,7 +25,7 @@ _TENS = {
 _DIGITS = {"zero": "0", "oh": "0", **{word: str(n) for word, n in _UNITS.items()}}
 
 _BEFORE = {"diameter": {"diameter", "dia", "phi", "ø"}, "length": {"length"}}
-_AFTER = {"diameter": set(), "length": {"long"}}
+_AFTER = {"diameter": {"dia", "diameter"}, "length": {"long"}}
 _MM = {"mm", "millimeter", "millimeters", "millimetre", "millimetres"}
 
 
@@ -78,12 +78,20 @@ def parse_number(text: str, field: Field) -> Optional[float]:
     """The value, if `text` is only a number that answers the asked field. Else None.
 
     Allowed around the number: the name of the asked field and "mm".
-    Two numbers, a doubt, another field name or any other word give None.
+    Two numbers, a doubt ("25?"), another field name or any other word give None.
     """
-    s = text.strip().lower().rstrip(".!?").strip()
-    s = re.sub(r"(?<=\d),(?=\d)", ".", s).replace(",", " ")
+    s = text.strip().lower()
+    if s.endswith("?"):
+        return None  # speech recognition marks a doubt this way
+    s = s.rstrip(".!").strip()
+    s = re.sub(r"(?<=\d),(?=\d(?!\d))", ".", s)  # "25,5" is 25.5. Only one digit after the comma.
+    if re.search(r"\d,\d", s):
+        return None  # "25,30" or "1,000": two numbers, or a thousands mark
+    s = s.replace(",", " ")
     s = re.sub(r"(?<=[a-z])-(?=[a-z])", " ", s)  # "twenty-five", but not "-5"
     s = re.sub(r"(?<=\d)(?=mm\b)", " ", s)
+    s = re.sub(r"ø\s*(?=\d)", "ø ", s)
+    s = re.sub(r"(?<=\d) point (?=\d)", ".", s)  # "25 point 5"
     words = s.split()
 
     if words and words[0] in _BEFORE[field]:
@@ -106,10 +114,26 @@ _REJECTIONS = {
 }
 
 
-def is_rejection(text: str) -> bool:
-    """True when the whole sentence only says "that was wrong". It means: undo the last entry."""
+_UNDO = {"undo", "undo that", "go back"}
+
+
+def _plain(text: str) -> str:
     s = re.sub(r"[.,!?]", " ", text.lower()).replace("’", "'")
-    return " ".join(s.split()) in _REJECTIONS
+    return " ".join(s.split())
+
+
+def is_rejection(text: str) -> bool:
+    """True when the whole sentence only says "that was wrong".
+
+    With a question or a warning prompt on the display it only dismisses that.
+    Otherwise it means: undo the last entry.
+    """
+    return _plain(text) in _REJECTIONS
+
+
+def is_undo(text: str) -> bool:
+    """True for the words that always mean undo, whatever is on the display."""
+    return _plain(text) in _UNDO
 
 
 def next_step(spec: ShaftSpec, pending_diameter: Optional[float]) -> dict:
