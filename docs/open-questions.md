@@ -59,3 +59,9 @@ Each item has a safe default. We work with the default until we know more.
 34. **Docker build is not tested.** Docker Desktop did not finish starting on the dev machine, so `docker compose up --build` has never run. The Dockerfile is written from the known needs (OpenCascade system libraries, speech model inside the image). Test it before the README promise counts.
 35. **`start.sh` is not tested.** Only `scripts/start.ps1` ran (Windows): backend and app came up, and a sentence without an API key gave a clear error. The bash script needs a run on macOS or Linux.
 36. **Clean-machine test.** Planned for Nov 28: a fresh clone, only the README, on a machine without the dev tools.
+
+## Added with the 3D viewer (Nov 23)
+
+37. **3D on the phone, not on the glasses.** The glasses cannot run WebGL and one image refresh takes about 0.8 s, so a rotating view there is not smooth. The phone page has the three.js viewer. A stepped rotation on the glasses (swipe = 30 degrees) is possible later, after the real G2 speed test.
+38. **three.js comes from a CDN.** The phone needs internet for the 3D view. Without it the page still shows the 2D side view and the downloads. Bundling the library into the server is a small follow-up.
+39. **Viewer is checked in a desktop browser only** (also at phone width). A real phone browser and touch gestures are not tested yet.

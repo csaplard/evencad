@@ -24,11 +24,13 @@ from server.core.readback import readback
 from server.core.validation import validate
 from server.drive import DriveError, DriveUploader, get_uploader
 from server.draw.glasses import glasses_png, glasses_tiles
+from server.draw.model import profile
 from server.export import FILE_NAMES, export_all, rebuild_sheets
 from server.sessions import Session, SessionStore, Turn, now_iso
 
 log = logging.getLogger("evencad")
 
+WEB_DIR = Path(__file__).parent / "web"
 MEDIA = {"step": "model/step", "dxf": "image/vnd.dxf", "pdf": "application/pdf"}
 
 
@@ -301,6 +303,17 @@ def create_app(
         store.save(session)
         return state(session)
 
+    @app.get("/session/{sid}/profile")
+    def get_profile(sid: str):
+        """Half profile for the 3D viewer: [x along the axis, radius] points. The same data feeds the STEP file."""
+        spec = load(sid).spec
+        points = [[round(x, 6), round(r, 6)] for x, r in profile(spec)] if spec.segments else []
+        return {"points": points, "length": spec.total_length, "max_diameter": spec.max_diameter}
+
+    @app.get("/web/viewer.js")
+    def viewer_js():
+        return FileResponse(WEB_DIR / "viewer.js", media_type="text/javascript")
+
     @app.get("/s/{sid}", response_class=HTMLResponse)
     def phone_page(sid: str):
         session = load(sid)
@@ -346,13 +359,17 @@ body{{font:16px/1.5 system-ui,sans-serif;margin:0;padding:20px;max-width:560px;m
 img{{width:100%;background:#000;border:1px solid #333}} .btn,button{{display:inline-block;margin:6px 8px 6px 0;padding:12px 18px;
 border-radius:8px;background:#2e7d32;color:#fff;text-decoration:none;border:0;font-size:16px}}
 .drive{{background:#1565c0}} .draft{{color:#ffb300;font-weight:600}} .ok{{color:#66bb6a;font-weight:600}} input{{font-size:16px;padding:8px;width:100%;box-sizing:border-box;margin:6px 0}}
-code{{color:#9e9e9e}}
+code{{color:#9e9e9e}} #viewer canvas{{display:block;width:100%;border:1px solid #333;touch-action:none}} .note{{color:#9e9e9e;font-size:13px;margin:4px 0 12px}}
 </style></head><body>
 <h1>{e(spec.title)}</h1>
 <p><code>{e(spec.id)}</code></p>
+<div id="viewer" data-session="{e(spec.id)}"></div>
+<p id="viewer-note" class="note">Loading the 3D view…</p>
 <img src="/session/{e(spec.id)}/render" alt="Side view">
 <p>{e(st['readback'])}</p>
 {body}
+<script type="importmap">{{"imports": {{"three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}}}</script>
+<script type="module" src="/web/viewer.js"></script>
 </body></html>"""
 
 
