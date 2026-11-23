@@ -3,7 +3,10 @@
 Run:  uvicorn server.main:app --reload --port 8000
 """
 
+import hashlib
 import html
+import json
+import shutil
 import io
 import logging
 import os
@@ -46,6 +49,21 @@ class FinishIn(BaseModel):
 
 class ApproveIn(BaseModel):
     name: str = Field(min_length=2, max_length=60)
+
+
+def revision_name(n: int) -> str:
+    """1 -> A, 2 -> B, 26 -> Z, 27 -> AA."""
+    name = ""
+    while n > 0:
+        n, rest = divmod(n - 1, 26)
+        name = chr(ord("A") + rest) + name
+    return name
+
+
+def _fingerprint(spec) -> str:
+    """Changes when the drawing content changes. The approval and the revision letter are left out."""
+    content = spec.model_dump(mode="json", exclude={"status", "approved_by", "approved_at", "revision"})
+    return hashlib.sha256(json.dumps(content, sort_keys=True).encode()).hexdigest()[:16]
 
 
 def _load_env_file(path: Path = Path(".env")) -> None:
@@ -148,6 +166,7 @@ def create_app(
             "active_segment": active_of(session),
             "guide": None if session.finished else next_step(spec, session.pending_diameter),
             "finished": session.finished,
+            "revision": spec.revision if session.finished else None,
             "files": files,
             "drive": session.drive if session.finished else None,
             "phone_page": f"/s/{spec.id}",
@@ -160,6 +179,14 @@ def create_app(
             **extra,
         }
 
+    def mark_changed(session: Session) -> None:
+        """The drawing content changed: it is not finished, and an approval no longer holds."""
+        session.finished = False
+        spec = session.spec
+        if spec.status != "draft" or spec.approved_by:
+            session.record("approval_reset", was_approved_by=spec.approved_by, revision=spec.revision)
+        spec.status, spec.approved_by, spec.approved_at = "draft", None, None
+
     def do_undo(session: Session) -> Optional[str]:
         if session.pending_diameter is not None:
             # A half-entered segment is undone first. The shaft itself does not change.
@@ -171,9 +198,17 @@ def create_app(
         turn = session.history.pop()
         session.spec = type(session.spec).model_validate(turn.before)
         session.active_segment = turn.active_before
-        session.finished = False
+        mark_changed(session)
         session.record("undo", undone=turn.ops)
         return None
+
+    def archive(out: Path, revision: str) -> None:
+        """Keep a copy of each revision in its own folder."""
+        keep = out / f"rev_{revision}"
+        keep.mkdir(parents=True, exist_ok=True)
+        for name in FILE_NAMES.values():
+            if (out / name).exists():
+                shutil.copyfile(out / name, keep / name)
 
     def do_finish(session: Session, confirm_warnings: bool) -> dict:
         report = validate(session.spec)
@@ -182,9 +217,16 @@ def create_app(
         if report.warnings and not confirm_warnings:
             return {"needs_confirm": True}
         t0 = time.perf_counter()
-        export_all(session.spec, store.out_dir(session.spec.id))
+        # A new revision letter only when the drawing changed since the last finish.
+        mark = _fingerprint(session.spec)
+        if not session.revisions or session.revisions[-1]["fingerprint"] != mark:
+            session.revisions.append({"rev": revision_name(len(session.revisions) + 1), "at": now_iso(), "fingerprint": mark})
+        session.spec.revision = session.revisions[-1]["rev"]
+        out = store.out_dir(session.spec.id)
+        export_all(session.spec, out)
+        archive(out, session.spec.revision)
         session.finished = True
-        session.record("finish", warnings_confirmed=[m.code for m in report.warnings], export_ms=round((time.perf_counter() - t0) * 1000))
+        session.record("finish", revision=session.spec.revision, warnings_confirmed=[m.code for m in report.warnings], export_ms=round((time.perf_counter() - t0) * 1000))
         upload_to_drive(session)
         return {}
 
@@ -265,6 +307,7 @@ def create_app(
                 session.history.append(Turn(at=now_iso(), utterance=text, ops=ops_json, before=session.spec.model_dump(mode="json"), active_before=session.active_segment))
                 session.active_segment = active_after(session.spec, [op], session.active_segment)
                 session.spec = new_spec
+                mark_changed(session)
                 session.pending_diameter = None
                 session.record("applied", utterance=text, ops=ops_json, source="guide")
             store.save(session)
@@ -295,7 +338,7 @@ def create_app(
             session.history.append(Turn(at=now_iso(), utterance=text, ops=ops_json, before=session.spec.model_dump(mode="json"), active_before=session.active_segment))
             session.active_segment = active_after(session.spec, changes, session.active_segment)
             session.spec = new_spec
-            session.finished = False
+            mark_changed(session)
             session.pending_diameter = None  # a full sentence ends the half-entered segment
             session.record("applied", utterance=text, ops=ops_json)
 
@@ -348,14 +391,22 @@ def create_app(
         return Response(content=png, media_type="image/png", headers={"Cache-Control": "no-store"})
 
     @app.get("/session/{sid}/files/{kind}")
-    def download(sid: str, kind: str):
+    def download(sid: str, kind: str, rev: Optional[str] = None):
+        """The current files, or with ?rev=A the kept files of an older revision."""
         session = load(sid)
         if kind not in FILE_NAMES:
             raise HTTPException(status_code=404, detail="Unknown file kind")
+        if rev is not None:
+            if rev not in [r["rev"] for r in session.revisions]:
+                raise HTTPException(status_code=404, detail="Unknown revision")
+            path = store.out_dir(sid) / f"rev_{rev}" / FILE_NAMES[kind]
+            if not path.exists():
+                raise HTTPException(status_code=404, detail="Unknown revision")
+            return FileResponse(path, media_type=MEDIA[kind], filename=f"{sid}_rev{rev}.{kind}")
         path = store.out_dir(sid) / FILE_NAMES[kind]
         if not session.finished or not path.exists():
             raise HTTPException(status_code=404, detail="Not finished yet")
-        return FileResponse(path, media_type=MEDIA[kind], filename=f"{sid}.{kind}")
+        return FileResponse(path, media_type=MEDIA[kind], filename=f"{sid}_rev{session.spec.revision}.{kind}")
 
     @app.post("/session/{sid}/approve")
     def approve(sid: str, body: ApproveIn):
@@ -367,8 +418,9 @@ def create_app(
         session.spec.approved_by = body.name.strip()
         session.spec.approved_at = datetime.now(timezone.utc)
         rebuild_sheets(session.spec, store.out_dir(sid))
+        archive(store.out_dir(sid), session.spec.revision or "A")
         upload_to_drive(session, kinds=["dxf", "pdf"])
-        session.record("approved", by=session.spec.approved_by)
+        session.record("approved", by=session.spec.approved_by, revision=session.spec.revision)
         store.save(session)
         return state(session)
 
@@ -409,7 +461,12 @@ async function approve(ev) {{
             links += f'<a class="btn drive" href="{e(drive["folder_url"])}">Google Drive folder</a>'
         elif drive.get("status") == "error":
             mark += f"<p class='draft'>Google Drive: {e(drive['message'])}</p>"
-        body = f"{mark}<p class='files'>{links}</p>{form}"
+        older = [r["rev"] for r in session.revisions if r["rev"] != spec.revision]
+        history = ""
+        if older:
+            items = " · ".join(f'<a href="/session/{e(spec.id)}/files/pdf?rev={e(r)}">{e(r)} (PDF)</a>' for r in older)
+            history = f"<p class='old'>Older revisions: {items}</p>"
+        body = f"<p>Revision {e(spec.revision or '-')}</p>{mark}<p class='files'>{links}</p>{form}{history}"
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1"><title>{e(spec.title)} – EvenCAD</title>
 <style>
@@ -417,7 +474,7 @@ body{{font:16px/1.5 system-ui,sans-serif;margin:0;padding:20px;max-width:560px;m
 img{{width:100%;background:#000;border:1px solid #333}} .btn,button{{display:inline-block;margin:6px 8px 6px 0;padding:12px 18px;
 border-radius:8px;background:#2e7d32;color:#fff;text-decoration:none;border:0;font-size:16px}}
 .drive{{background:#1565c0}} .draft{{color:#ffb300;font-weight:600}} .ok{{color:#66bb6a;font-weight:600}} input{{font-size:16px;padding:8px;width:100%;box-sizing:border-box;margin:6px 0}}
-code{{color:#9e9e9e}}
+code{{color:#9e9e9e}} .old a{{color:#90caf9}}
 </style></head><body>
 <h1>{e(spec.title)}</h1>
 <p><code>{e(spec.id)}</code></p>

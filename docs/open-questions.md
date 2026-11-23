@@ -95,3 +95,8 @@ Each item has a safe default. We work with the default until we know more.
 
 56. **Density table.** `server/core/mass.py` has ten material families with handbook densities. The name match is by pattern ("C45", "1.4301", "6082", "CuZn39Pb3"). Dániel: check the values and add the materials you use. An unknown name gives no mass, never a guess.
 57. **The mass is an estimate.** The volume formula agrees with the CAD model within 0.2 % in the tests (the round keyway ends are approximated). The title block says "estimate".
+
+## Added with revisions (Nov 23)
+
+58. **Revision letters.** Each finish of a changed drawing gets the next letter (A, B, ...). The files of every revision are kept in `data/out/<session>/rev_<letter>/`. Google Drive still holds only the newest files. Decide if Drive should keep old revisions too.
+59. **Fixed: approval survived a change.** Before this fix, a change after approval kept the "Approved" mark on the next sheet. Now every change (sentence, guided number, undo) sets the drawing back to DRAFT and writes `approval_reset` into the audit log.

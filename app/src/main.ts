@@ -121,7 +121,7 @@ function show(next: SessionState) {
   if (needs_confirm) lines.push('Tap to accept the warning and finish')
   else if (finished) {
     const saved = next.drive?.status === 'ok' ? ' · saved to Drive' : next.drive?.status === 'error' ? ' · Drive failed' : ''
-    lines.push(`DRAFT files ready${saved} · code ${next.id.slice(-6)}`)
+    lines.push(`DRAFT rev ${next.revision ?? '-'} ready${saved} · code ${next.id.slice(-6)}`)
   } else if (next.guide) lines.push(empty ? `Tap and say a number. ${next.guide.text}` : next.guide.text)
   setText(INFO, lines.join('\n'))
 

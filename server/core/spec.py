@@ -51,6 +51,7 @@ class ShaftSpec(BaseModel):
     title: str = "Shaft"
     material: Optional[str] = None
     segments: list[Segment] = Field(default_factory=list)
+    revision: Optional[str] = None  # "A", "B", ... set by the server at finish
     status: Literal["draft", "approved"] = "draft"
     approved_by: Optional[str] = None
     approved_at: Optional[datetime] = None

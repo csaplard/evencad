@@ -63,6 +63,8 @@ speech → Whisper (on our server) → text → Claude (interpreter) → typed o
 - Mass: say the material ("material C45"). The read-back and the title block then show the mass, for example `424 g`.
   The volume comes from the spec by formula. The density comes from a small table by the material name (steel, stainless steel,
   cast iron, aluminium, brass, bronze, copper, titanium, POM, PA6). An unknown material shows no mass.
+- Revisions: each finish of a changed drawing gets the next letter (A, B, ...). It is in the title block. Old revisions stay on the phone page.
+  Any change after an approval makes the drawing a DRAFT again.
 - Tap also accepts a warning. Double tap opens the system exit dialog.
 - Swipe turns the drawing: 2D side view with dimensions, then a 3D line view at 30°, 60°, 90° (end view), 120°, 150°.
   The glasses show images only, so the 3D view turns in steps, one image per step.

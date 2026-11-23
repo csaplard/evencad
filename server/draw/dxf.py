@@ -138,7 +138,7 @@ def _frame_and_title(msp, spec: ShaftSpec, scale_name: str):
     rows_left = [f"Material: {spec.material or '-'}", "Units: mm", f"Scale: {scale_name}", f"Date: {date.today().isoformat()}"]
     approved = spec.status == "approved" and spec.approved_by
     when = spec.approved_at.date().isoformat() if approved and spec.approved_at else ""
-    rows_right = [f"Session: {spec.id}", f"Status: {spec.status.upper()}", f"Approved by: {spec.approved_by if approved else ''}", f"Approval date: {when}"]
+    rows_right = [f"Session: {spec.id}", f"Status: {spec.status.upper()}" + (f"   Rev: {spec.revision}" if spec.revision else ""), f"Approved by: {spec.approved_by if approved else ''}", f"Approval date: {when}"]
     for i, (left, right) in enumerate(zip(rows_left, rows_right)):
         y = ty - (i + 1) * TITLE_H / 4 + 3.5
         text(left, c1 + 3, y)

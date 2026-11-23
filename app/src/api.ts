@@ -17,6 +17,7 @@ export interface SessionState {
   validation: { errors: Message[]; warnings: Message[] }
   can_undo: boolean
   finished: boolean
+  revision: string | null
   files: Record<string, string>
   phone_page: string
   views_3d: number[]

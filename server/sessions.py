@@ -38,6 +38,7 @@ class Session(BaseModel):
     log: list[dict] = Field(default_factory=list)  # everything that happened, never shortened
     finished: bool = False
     drive: Optional[dict] = None  # result of the last Google Drive upload
+    revisions: list[dict] = Field(default_factory=list)  # one entry per finished revision: rev, at, fingerprint
     active_segment: Optional[int] = None  # 1-based: the segment the last change touched
     pending_diameter: Optional[float] = None  # guided measuring: diameter given, length still missing
 
