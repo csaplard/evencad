@@ -78,11 +78,11 @@ function setText(target: { id: number; name: string }, content: string) {
   )
 }
 
-function pushDrawing(id: string) {
+function pushDrawing(id: string, view: number | null) {
   enqueue(async () => {
     const t0 = performance.now()
     for (const [i, tile] of TILES.entries()) {
-      const bytes = await fetchTile(id, i as 0 | 1)
+      const bytes = await fetchTile(id, i as 0 | 1, view)
       const result = await bridge.updateImageRawData(
         new ImageRawDataUpdate({ containerID: tile.id, containerName: tile.name, imageData: bytes }),
       )
@@ -95,13 +95,19 @@ function pushDrawing(id: string) {
 // ── App state ────────────────────────────────────────────────────────────
 let state: SessionState | null = null
 let lastDrawn = ''
+// The glasses cannot run a 3D engine, so the 3D view turns in steps.
+// viewIndex 0 is the 2D side view. 1.. are the 3D views the server offers.
+let viewIndex = 0
+const currentView = () => (viewIndex === 0 || !state ? null : state.views_3d[viewIndex - 1])
 let busy = false
 
 function show(next: SessionState) {
   state = next
   const { ask, error, heard, needs_confirm, finished, validation } = next
 
-  let status = heard ? `"${heard}"` : 'EvenCAD · ready'
+  // One display line holds about 45 characters. Long sentences are cut at the end.
+  const short = heard && heard.length > 44 ? `${heard.slice(0, 43)}…` : heard
+  let status = short ? `"${short}"` : 'EvenCAD · ready'
   if (ask) status = `? ${ask}`
   else if (error) status = `! ${error}`
   setText(STATUS, status)
@@ -117,12 +123,26 @@ function show(next: SessionState) {
   }
   setText(INFO, lines.join('\n'))
 
-  const drawingKey = JSON.stringify(next.spec.segments)
+  redraw()
+  renderPhone()
+}
+
+function redraw() {
+  if (!state) return
+  const drawingKey = JSON.stringify([state.spec.segments, currentView()])
   if (drawingKey !== lastDrawn) {
     lastDrawn = drawingKey
-    pushDrawing(next.id)
+    pushDrawing(state.id, currentView())
   }
-  renderPhone()
+}
+
+// Swipe down = next view, swipe up = previous view. It wraps around.
+function turnView(step: 1 | -1) {
+  if (!state || state.spec.segments.length === 0) return
+  const count = state.views_3d.length + 1
+  viewIndex = (viewIndex + step + count) % count
+  console.log('view', currentView() ?? '2D')
+  redraw()
 }
 
 async function run(label: string, action: () => Promise<SessionState>) {
@@ -209,6 +229,9 @@ const unsubscribe = bridge.onEvenHubEvent(event => {
     return
   }
 
+  if (textType === OsEventTypeList.SCROLL_BOTTOM_EVENT) return turnView(1)
+  if (textType === OsEventTypeList.SCROLL_TOP_EVENT) return turnView(-1)
+
   // The app left the front: the microphone must not stay open.
   if (sysType === OsEventTypeList.FOREGROUND_EXIT_EVENT && recorder) {
     recorder = null
@@ -236,6 +259,7 @@ app.innerHTML = `
     </form>
     <p>
       <button id="talk" type="button">Talk</button>
+      <button id="turn" type="button">Turn view</button>
       <button id="undo" type="button">Undo</button>
       <button id="finish" type="button">Finish</button>
     </p>
@@ -269,6 +293,7 @@ app.querySelector<HTMLFormElement>('#say')!.addEventListener('submit', ev => {
   say(text)
 })
 app.querySelector('#talk')!.addEventListener('click', onTap)
+app.querySelector('#turn')!.addEventListener('click', () => turnView(1))
 app.querySelector('#undo')!.addEventListener('click', () => state && run('Undo…', () => undo(state!.id)))
 app.querySelector('#finish')!.addEventListener('click', () => state && run('Finishing…', () => finish(state!.id, false)))
 

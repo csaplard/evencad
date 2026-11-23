@@ -17,6 +17,7 @@ export interface SessionState {
   finished: boolean
   files: Record<string, string>
   phone_page: string
+  views_3d: number[]
   drive: { status: 'ok' | 'error'; folder_url?: string; message?: string } | null
   heard: string | null
   ask: string | null
@@ -68,8 +69,10 @@ export async function sendAudio(id: string, wav: Uint8Array): Promise<SessionSta
 }
 
 // One 288 x 144 PNG tile of the drawing band. tile 0 = left, 1 = right.
-export async function fetchTile(id: string, tile: 0 | 1): Promise<Uint8Array> {
-  const res = await fetch(`${BACKEND}/session/${id}/render?tile=${tile}`)
+// view = null: the 2D side view. view = degrees: the 3D line view turned by that angle.
+export async function fetchTile(id: string, tile: 0 | 1, view: number | null): Promise<Uint8Array> {
+  const query = view === null ? `tile=${tile}` : `tile=${tile}&view=${view}`
+  const res = await fetch(`${BACKEND}/session/${id}/render?${query}`)
   if (!res.ok) throw new Error(`render failed: ${res.status}`)
   return new Uint8Array(await res.arrayBuffer())
 }
