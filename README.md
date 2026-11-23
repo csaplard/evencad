@@ -29,7 +29,7 @@ Backend (Python, FastAPI)
 ```
 
 The AI never writes geometry. It only returns small typed operations.
-Full design: [EVENCAD_SPEC.md](EVENCAD_SPEC.md). SDK facts: [docs/sdk-notes.md](docs/sdk-notes.md).
+Full design: [EVENCAD_SPEC.md](EVENCAD_SPEC.md). Demo plan: [docs/demo-script.md](docs/demo-script.md). SDK facts: [docs/sdk-notes.md](docs/sdk-notes.md).
 
 ## What works today
 
@@ -60,6 +60,8 @@ speech → Whisper (on our server) → text → Claude (interpreter) → typed o
   ![Keyway in 2D](docs/img/keyway-2d.png)
 
   ![Keyway in 3D](docs/img/keyway-3d.png)
+- Fit and roughness: "the second one has an h six fit", "roughness one point six on the first one".
+  They are notes: `Ø25 h6` in the diameter dimension and an `Ra 1.6` mark on the sheet. The fit must be a real ISO shaft fit.
 - Mass: say the material ("material C45"). The read-back and the title block then show the mass, for example `424 g`.
   The volume comes from the spec by formula. The density comes from a small table by the material name (steel, stainless steel,
   cast iron, aluminium, brass, bronze, copper, titanium, POM, PA6). An unknown material shows no mass.
