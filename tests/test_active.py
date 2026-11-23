@@ -80,7 +80,7 @@ class Fake:
 
 
 def test_the_api_follows_the_last_change(tmp_path):
-    client = TestClient(create_app(data_dir=tmp_path, interpreter=Fake(), drive=None))
+    client = TestClient(create_app(auth=False, data_dir=tmp_path, interpreter=Fake(), drive=None))
     sid = client.post("/session").json()["id"]
 
     def say(text):

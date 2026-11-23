@@ -4,12 +4,14 @@ Run:  uvicorn server.main:app --reload --port 8000
 """
 
 import hashlib
+import secrets
 import html
 import json
 import shutil
 import io
 import logging
 import os
+import re
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -18,7 +20,7 @@ from typing import Optional, Union
 from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
 
 from server.ai.interpreter import Interpreter, InterpreterError, get_interpreter
@@ -32,7 +34,7 @@ from server.drive import DriveError, DriveUploader, get_uploader
 from server.draw.glasses import glasses_png, glasses_tiles
 from server.draw.glasses3d import YAW_STEPS, glasses_3d_tiles, render_glasses_3d
 from server.export import FILE_NAMES, export_all, rebuild_sheets
-from server.sessions import Session, SessionStore, Turn, now_iso
+from server.sessions import SESSION_ID_PATTERN, Session, SessionStore, Turn, now_iso
 
 log = logging.getLogger("evencad")
 
@@ -87,8 +89,12 @@ def create_app(
     interpreter: Optional[Interpreter] = None,
     stt: Optional[SttProvider] = None,
     drive: Union[DriveUploader, None, str] = "auto",
+    auth: bool = True,
 ) -> FastAPI:
-    """`drive`: an uploader, None (off), or "auto" (set up from the environment on first use)."""
+    """`drive`: an uploader, None (off), or "auto" (set up from the environment on first use).
+
+    `auth`: every call to a session needs the session token. Only tests turn it off.
+    """
     _load_env_file()
     data_dir = Path(data_dir or os.environ.get("DATA_DIR", "data"))
     store = SessionStore(data_dir)
@@ -96,13 +102,29 @@ def create_app(
 
     app = FastAPI(title="EvenCAD", version="0.2.0")
 
+    session_path = re.compile(rf"/(?:session|s)/({SESSION_ID_PATTERN})(?:/|$)")
+
+    @app.middleware("http")
+    async def check_token(request: Request, call_next):
+        """The session id is short and can be guessed. The token cannot.
+
+        It comes in the X-Session-Token header (the glasses app) or as ?k= (links on the phone page).
+        """
+        found = session_path.match(request.url.path)
+        if auth and found and request.method != "OPTIONS":
+            session = store.get(found.group(1))
+            given = request.headers.get("x-session-token") or request.query_params.get("k") or ""
+            if session is not None and not (session.token and secrets.compare_digest(given, session.token)):
+                return JSONResponse(status_code=401, content={"detail": "Session token is missing or wrong"})
+        return await call_next(request)
+
     # The glasses app runs in a WebView. Its origin is not documented,
     # so the default is "*". We use no cookies and no credentials.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=_cors_origins(),
         allow_methods=["GET", "POST", "OPTIONS"],
-        allow_headers=["Content-Type"],
+        allow_headers=["Content-Type", "X-Session-Token"],
         allow_credentials=False,
     )
 
@@ -154,8 +176,9 @@ def create_app(
         spec = session.spec
         report = validate(spec)
         files = {}
+        key = f"?k={session.token}" if auth and session.token else ""
         if session.finished:
-            files = {kind: f"/session/{spec.id}/files/{kind}" for kind in FILE_NAMES}
+            files = {kind: f"/session/{spec.id}/files/{kind}{key}" for kind in FILE_NAMES}
         return {
             "id": spec.id,
             "spec": spec.model_dump(mode="json"),
@@ -169,7 +192,7 @@ def create_app(
             "revision": spec.revision if session.finished else None,
             "files": files,
             "drive": session.drive if session.finished else None,
-            "phone_page": f"/s/{spec.id}",
+            "phone_page": f"/s/{spec.id}{key}",
             "views_3d": list(YAW_STEPS),
             "heard": None,
             "ask": None,
@@ -236,7 +259,9 @@ def create_app(
 
     @app.post("/session", status_code=201)
     def create_session():
-        return state(store.create())
+        session = store.create()
+        # The token is given once, here. No other answer repeats it as a field.
+        return state(session, **({"token": session.token} if auth else {}))
 
     @app.get("/session/{sid}/spec")
     def get_spec(sid: str):
@@ -427,14 +452,16 @@ def create_app(
     @app.get("/s/{sid}", response_class=HTMLResponse)
     def phone_page(sid: str):
         session = load(sid)
-        return phone_html(session, state(session))
+        return phone_html(session, state(session), session.token if auth else None)
 
     return app
 
 
-def phone_html(session: Session, st: dict) -> str:
+def phone_html(session: Session, st: dict, token: Optional[str] = None) -> str:
     spec = session.spec
     e = html.escape
+    key = f"?k={token}" if token else ""
+    and_key = f"&k={token}" if token else ""
     if not session.finished:
         body = "<p>The drawing is not finished yet. Say “finish” on the glasses.</p>"
     else:
@@ -451,7 +478,7 @@ def phone_html(session: Session, st: dict) -> str:
 <script>
 async function approve(ev) {{
   ev.preventDefault();
-  const r = await fetch('/session/{e(spec.id)}/approve', {{method: 'POST', headers: {{'Content-Type': 'application/json'}},
+  const r = await fetch('/session/{e(spec.id)}/approve', {{method: 'POST', headers: {{'Content-Type': 'application/json', 'X-Session-Token': '{e(token or "")}'}},
     body: JSON.stringify({{name: document.getElementById('name').value}})}});
   if (r.ok) location.reload(); else alert('Approval failed');
 }}
@@ -464,7 +491,7 @@ async function approve(ev) {{
         older = [r["rev"] for r in session.revisions if r["rev"] != spec.revision]
         history = ""
         if older:
-            items = " · ".join(f'<a href="/session/{e(spec.id)}/files/pdf?rev={e(r)}">{e(r)} (PDF)</a>' for r in older)
+            items = " · ".join(f'<a href="/session/{e(spec.id)}/files/pdf?rev={e(r)}{e(and_key)}">{e(r)} (PDF)</a>' for r in older)
             history = f"<p class='old'>Older revisions: {items}</p>"
         body = f"<p>Revision {e(spec.revision or '-')}</p>{mark}<p class='files'>{links}</p>{form}{history}"
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
@@ -478,7 +505,7 @@ code{{color:#9e9e9e}} .old a{{color:#90caf9}}
 </style></head><body>
 <h1>{e(spec.title)}</h1>
 <p><code>{e(spec.id)}</code></p>
-<img src="/session/{e(spec.id)}/render" alt="Side view">
+<img src="/session/{e(spec.id)}/render{e(key)}" alt="Side view">
 <p>{e(st['readback'])}</p>
 {body}
 </body></html>"""

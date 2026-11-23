@@ -19,7 +19,7 @@ class Fake:
 
 @pytest.fixture
 def client(tmp_path):
-    return TestClient(create_app(data_dir=tmp_path, interpreter=Fake(), drive=None))
+    return TestClient(create_app(auth=False, data_dir=tmp_path, interpreter=Fake(), drive=None))
 
 
 @pytest.fixture

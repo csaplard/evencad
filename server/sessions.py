@@ -34,6 +34,7 @@ class Turn(BaseModel):
 
 class Session(BaseModel):
     spec: ShaftSpec
+    token: Optional[str] = None  # secret of this session. Needed for every call.
     history: list[Turn] = Field(default_factory=list)  # undo stack
     log: list[dict] = Field(default_factory=list)  # everything that happened, never shortened
     finished: bool = False
@@ -65,7 +66,7 @@ class SessionStore:
         sid = new_session_id()
         while self._path(sid).exists():
             sid = new_session_id()
-        session = Session(spec=ShaftSpec(id=sid))
+        session = Session(spec=ShaftSpec(id=sid), token=secrets.token_urlsafe(18))
         session.record("created")
         self.save(session)
         return session

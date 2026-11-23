@@ -70,7 +70,7 @@ def test_tiles_and_endpoint(tmp_path):
         def interpret(self, spec, utterance):
             return InterpreterResult.model_validate({"ops": [{"op": "add_segment", "diameter": 30, "length": 40}], "ask": None})
 
-    client = TestClient(create_app(data_dir=tmp_path, interpreter=Fake(), drive=None))
+    client = TestClient(create_app(auth=False, data_dir=tmp_path, interpreter=Fake(), drive=None))
     st = client.post("/session").json()
     assert st["views_3d"] == [30, 60, 90, 120, 150]
     sid = st["id"]

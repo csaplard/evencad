@@ -11,7 +11,7 @@ from server.main import create_app
 
 @pytest.fixture
 def client(tmp_path):
-    return TestClient(create_app(data_dir=tmp_path))
+    return TestClient(create_app(auth=False, data_dir=tmp_path))
 
 
 def test_health(client):
@@ -68,8 +68,8 @@ def test_session_is_saved_as_json_file(client, tmp_path):
 
 
 def test_session_survives_a_restart(tmp_path):
-    sid = TestClient(create_app(data_dir=tmp_path)).post("/session").json()["id"]
-    fresh = TestClient(create_app(data_dir=tmp_path))
+    sid = TestClient(create_app(auth=False, data_dir=tmp_path)).post("/session").json()["id"]
+    fresh = TestClient(create_app(auth=False, data_dir=tmp_path))
     assert fresh.get(f"/session/{sid}/spec").status_code == 200
 
 

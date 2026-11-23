@@ -34,10 +34,14 @@ export interface SessionState {
   undone: boolean
 }
 
+// The server gives a secret token when the session is made. Every later call sends it.
+let token = ''
+const auth = (): Record<string, string> => (token ? { 'X-Session-Token': token } : {})
+
 async function call(path: string, body?: unknown): Promise<SessionState> {
   const res = await fetch(BACKEND + path, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...auth() },
     body: JSON.stringify(body ?? {}),
   })
   if (!res.ok) {
@@ -52,7 +56,11 @@ async function call(path: string, body?: unknown): Promise<SessionState> {
   return res.json()
 }
 
-export const createSession = () => call('/session')
+export async function createSession(): Promise<SessionState> {
+  const made = (await call('/session')) as SessionState & { token?: string }
+  token = made.token ?? ''
+  return made
+}
 export const sendUtterance = (id: string, text: string) => call(`/session/${id}/utterance`, { text })
 export const undo = (id: string) => call(`/session/${id}/undo`)
 export const finish = (id: string, confirmWarnings: boolean) =>
@@ -62,7 +70,7 @@ export const finish = (id: string, confirmWarnings: boolean) =>
 export async function sendAudio(id: string, wav: Uint8Array): Promise<SessionState> {
   const res = await fetch(`${BACKEND}/session/${id}/audio`, {
     method: 'POST',
-    headers: { 'Content-Type': 'audio/wav' },
+    headers: { 'Content-Type': 'audio/wav', ...auth() },
     body: wav as unknown as BodyInit,
   })
   if (!res.ok) {
@@ -81,7 +89,7 @@ export async function sendAudio(id: string, wav: Uint8Array): Promise<SessionSta
 // view = null: the 2D side view. view = degrees: the 3D line view turned by that angle.
 export async function fetchTile(id: string, tile: 0 | 1, view: number | null): Promise<Uint8Array> {
   const query = view === null ? `tile=${tile}` : `tile=${tile}&view=${view}`
-  const res = await fetch(`${BACKEND}/session/${id}/render?${query}`)
+  const res = await fetch(`${BACKEND}/session/${id}/render?${query}`, { headers: auth() })
   if (!res.ok) throw new Error(`render failed: ${res.status}`)
   return new Uint8Array(await res.arrayBuffer())
 }

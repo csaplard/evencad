@@ -100,3 +100,9 @@ Each item has a safe default. We work with the default until we know more.
 
 58. **Revision letters.** Each finish of a changed drawing gets the next letter (A, B, ...). The files of every revision are kept in `data/out/<session>/rev_<letter>/`. Google Drive still holds only the newest files. Decide if Drive should keep old revisions too.
 59. **Fixed: approval survived a change.** Before this fix, a change after approval kept the "Approved" mark on the next sheet. Now every change (sentence, guided number, undo) sets the drawing back to DRAFT and writes `approval_reset` into the audit log.
+
+## Added with the session token (Nov 23)
+
+60. **Token in the link.** The phone page link has the token as `?k=`. It can show up in server logs and in the browser history. This is fine for the hackathon. For a real launch use a short-lived pairing code that the phone trades for a cookie.
+61. **Sessions made before this change have no token.** They cannot be opened any more. Delete `data/sessions` if old test sessions are in the way.
+62. **No rate limit.** Nothing stops many wrong tokens or many new sessions. Add a limit before the backend is public for long.

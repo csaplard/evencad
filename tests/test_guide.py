@@ -75,7 +75,7 @@ class NoNumbers:
 
 @pytest.fixture
 def client(tmp_path):
-    return TestClient(create_app(data_dir=tmp_path, interpreter=NoNumbers(), drive=None))
+    return TestClient(create_app(auth=False, data_dir=tmp_path, interpreter=NoNumbers(), drive=None))
 
 
 @pytest.fixture
@@ -115,7 +115,7 @@ def test_the_pending_diameter_survives_a_reload_and_a_question(client, sid, tmp_
     say(client, sid, "thirty")
     st = say(client, sid, "bigger")
     assert st["ask"] and st["guide"]["diameter"] == 30
-    fresh = TestClient(create_app(data_dir=tmp_path, interpreter=NoNumbers(), drive=None))
+    fresh = TestClient(create_app(auth=False, data_dir=tmp_path, interpreter=NoNumbers(), drive=None))
     assert fresh.get(f"/session/{sid}/spec").json()["guide"]["diameter"] == 30
 
 

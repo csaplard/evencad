@@ -32,7 +32,7 @@ class FakeInterpreter:
 
 
 def make(tmp_path, stt):
-    client = TestClient(create_app(data_dir=tmp_path, interpreter=FakeInterpreter(), stt=stt))
+    client = TestClient(create_app(auth=False, data_dir=tmp_path, interpreter=FakeInterpreter(), stt=stt))
     return client, client.post("/session").json()["id"]
 
 

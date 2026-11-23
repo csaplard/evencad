@@ -70,7 +70,8 @@ speech → Whisper (on our server) → text → Claude (interpreter) → typed o
   The glasses show images only, so the 3D view turns in steps, one image per step.
 - Speech to text runs on the backend with faster-whisper (`base.en`, about 1 s per sentence on a laptop CPU).
 - `finish` makes `data/out/<session id>/shaft.step`, `shaft.dxf`, `shaft.pdf`.
-- Phone page `/s/<session id>`: the 2D side view, downloads, and the human "Approve for review" step.
+- Phone page `/s/<session id>?k=<token>`: the 2D side view, downloads, and the human "Approve for review" step.
+- Every session has a secret token. The server gives it once, when the session is made. Every call needs it, so the session id alone opens nothing.
 
 - `finish` also copies the three files to a Google Drive folder (when Drive is set up). Approval replaces the DXF and PDF there.
 
@@ -233,7 +234,7 @@ It asks for two permissions only: `network` (one origin, our backend) and `g2-mi
 - A hosted backend with a fixed HTTPS address (the whitelist is fixed inside the package).
 - A store name without the word "Even" (store rule). The working name in `app.json` is "ShaftCAD Draft".
 - Per-user Google Drive sign-in through a pairing page on the phone. Today the server uses one account.
-- A short pairing code instead of the session id on the glasses.
+- A short pairing code or a QR code that carries the phone page link from the glasses to the phone. Today the link is on the companion page.
 - Usage limits per user, and a spend limit on the API key.
 - Cost per drawing: a few short Claude calls with a small model, and speech-to-text on our own
   server. The Claude part is far below one cent per drawing at list prices. The server CPU is the main cost.
@@ -258,7 +259,7 @@ It asks for two permissions only: `network` (one origin, our backend) and `g2-mi
 - **Speech-to-text** was checked with a computer voice only. Human voices and workshop noise are open.
 - **One part family:** stepped shafts with chamfers. No threads, keyways, tolerances or fits.
 - **Drawing polish.** Diameter dimensions on the sheet cross the centre line.
-- **One Google account, no user accounts.** Anyone who knows a session id can open its phone page.
+- **One Google account, no user accounts.** A session is protected by its token only. The token is in the phone page link, so the link is the key: do not share it.
 - English only.
 
 More detail: [docs/open-questions.md](docs/open-questions.md).

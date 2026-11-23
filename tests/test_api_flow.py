@@ -40,7 +40,7 @@ class FakeInterpreter:
 
 @pytest.fixture
 def client(tmp_path):
-    return TestClient(create_app(data_dir=tmp_path, interpreter=FakeInterpreter()))
+    return TestClient(create_app(auth=False, data_dir=tmp_path, interpreter=FakeInterpreter()))
 
 
 @pytest.fixture

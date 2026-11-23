@@ -131,7 +131,7 @@ class FakeInterpreter:
 
 
 def run(tmp_path, drive):
-    client = TestClient(create_app(data_dir=tmp_path, interpreter=FakeInterpreter(), drive=drive))
+    client = TestClient(create_app(auth=False, data_dir=tmp_path, interpreter=FakeInterpreter(), drive=drive))
     sid = client.post("/session").json()["id"]
     client.post(f"/session/{sid}/utterance", json={"text": "add"})
     st = client.post(f"/session/{sid}/utterance", json={"text": "finish"}).json()
