@@ -1,0 +1,318 @@
+[
+  {
+    "name": "two_segments",
+    "before": [],
+    "utterance": "diameter thirty, forty long, then diameter twenty-five, sixty long",
+    "expect": {
+      "ops": [
+        {
+          "op": "add_segment",
+          "diameter": 30,
+          "length": 40
+        },
+        {
+          "op": "add_segment",
+          "diameter": 25,
+          "length": 60
+        }
+      ]
+    },
+    "recorded": "```json\n{\"ops\": [\n  {\"op\": \"add_segment\", \"diameter\": 30, \"length\": 40, \"at\": null},\n  {\"op\": \"add_segment\", \"diameter\": 25, \"length\": 60, \"at\": null}\n], \"ask\": null}\n```"
+  },
+  {
+    "name": "correction_second",
+    "before": [
+      [
+        30,
+        40
+      ],
+      [
+        25,
+        60
+      ],
+      [
+        20,
+        30
+      ]
+    ],
+    "utterance": "make the second one twenty-eight",
+    "expect": {
+      "ops": [
+        {
+          "op": "edit_segment",
+          "index": 2,
+          "diameter": 28
+        }
+      ]
+    },
+    "recorded": "```json\n{\"ops\": [{\"op\": \"edit_segment\", \"index\": 2, \"diameter\": 28, \"length\": null}], \"ask\": null}\n```"
+  },
+  {
+    "name": "fifteen_or_fifty",
+    "before": [
+      [
+        30,
+        40
+      ]
+    ],
+    "utterance": "then diameter fifteen or fifty, twenty long",
+    "expect": {
+      "ask": true
+    },
+    "recorded": "```json\n{\"ops\": [], \"ask\": \"Is that diameter 15 or 50?\"}\n```"
+  },
+  {
+    "name": "thirteen_thirty",
+    "before": [
+      [
+        50,
+        40
+      ],
+      [
+        45,
+        60
+      ]
+    ],
+    "utterance": "next diameter thirteen thirty, ten long",
+    "expect": {
+      "ask": true
+    },
+    "recorded": "```json\n{\"ops\": [], \"ask\": \"Do you mean diameter 13 or 30?\"}\n```"
+  },
+  {
+    "name": "make_it_bigger",
+    "before": [
+      [
+        30,
+        40
+      ],
+      [
+        25,
+        60
+      ],
+      [
+        20,
+        30
+      ]
+    ],
+    "utterance": "make it bigger",
+    "expect": {
+      "ask": true
+    },
+    "recorded": "```json\n{\"ops\": [], \"ask\": \"Which segment and by how much?\"}\n```"
+  },
+  {
+    "name": "chamfer_right_end",
+    "before": [
+      [
+        30,
+        40
+      ],
+      [
+        25,
+        60
+      ],
+      [
+        20,
+        30
+      ]
+    ],
+    "utterance": "one by forty-five on the right end",
+    "expect": {
+      "ops": [
+        {
+          "op": "set_chamfer",
+          "where": "right_end",
+          "size": 1,
+          "angle": 45
+        }
+      ]
+    },
+    "recorded": "```json\n{\"ops\": [{\"op\": \"set_chamfer\", \"where\": \"right_end\", \"size\": 1, \"angle\": 45}], \"ask\": null}\n```"
+  },
+  {
+    "name": "decimal_number",
+    "before": [],
+    "utterance": "diameter thirty five point five, length twelve",
+    "expect": {
+      "ops": [
+        {
+          "op": "add_segment",
+          "diameter": 35.5,
+          "length": 12
+        }
+      ]
+    },
+    "recorded": "```json\n{\"ops\": [{\"op\": \"add_segment\", \"diameter\": 35.5, \"length\": 12, \"at\": null}], \"ask\": null}\n```"
+  },
+  {
+    "name": "missing_length",
+    "before": [
+      [
+        30,
+        40
+      ]
+    ],
+    "utterance": "add a diameter forty segment",
+    "expect": {
+      "ask": true
+    },
+    "recorded": "{\"ops\": [], \"ask\": \"What length for the new segment?\"}"
+  },
+  {
+    "name": "relative_with_amount",
+    "before": [
+      [
+        30,
+        40
+      ],
+      [
+        25,
+        60
+      ],
+      [
+        20,
+        30
+      ]
+    ],
+    "utterance": "make the first one five longer",
+    "expect": {
+      "ops": [
+        {
+          "op": "edit_segment",
+          "index": 1,
+          "length": 45
+        }
+      ]
+    },
+    "recorded": "```json\n{\"ops\": [{\"op\": \"edit_segment\", \"index\": 1, \"diameter\": null, \"length\": 45}], \"ask\": null}\n```"
+  },
+  {
+    "name": "delete_last",
+    "before": [
+      [
+        30,
+        40
+      ],
+      [
+        25,
+        60
+      ],
+      [
+        20,
+        30
+      ]
+    ],
+    "utterance": "delete the last one",
+    "expect": {
+      "ops": [
+        {
+          "op": "delete_segment",
+          "index": "last"
+        }
+      ]
+    },
+    "recorded": "```json\n{\"ops\": [{\"op\": \"delete_segment\", \"index\": \"last\"}], \"ask\": null}\n```"
+  },
+  {
+    "name": "material",
+    "before": [
+      [
+        30,
+        40
+      ],
+      [
+        25,
+        60
+      ],
+      [
+        20,
+        30
+      ]
+    ],
+    "utterance": "material C forty-five",
+    "expect": {
+      "ops": [
+        {
+          "op": "set_material",
+          "text": "C45"
+        }
+      ]
+    },
+    "recorded": "```json\n{\"ops\": [{\"op\": \"set_material\", \"text\": \"C45\"}], \"ask\": null}\n```"
+  },
+  {
+    "name": "undo",
+    "before": [
+      [
+        30,
+        40
+      ],
+      [
+        25,
+        60
+      ],
+      [
+        20,
+        30
+      ]
+    ],
+    "utterance": "undo",
+    "expect": {
+      "ops": [
+        {
+          "op": "undo"
+        }
+      ]
+    },
+    "recorded": "```json\n{\"ops\": [{\"op\": \"undo\"}], \"ask\": null}\n```"
+  },
+  {
+    "name": "finish",
+    "before": [
+      [
+        30,
+        40
+      ],
+      [
+        25,
+        60
+      ],
+      [
+        20,
+        30
+      ]
+    ],
+    "utterance": "that's all, finish",
+    "expect": {
+      "ops": [
+        {
+          "op": "finish"
+        }
+      ]
+    },
+    "recorded": "```json\n{\"ops\": [{\"op\": \"finish\"}], \"ask\": null}\n```"
+  },
+  {
+    "name": "no_approval",
+    "before": [
+      [
+        30,
+        40
+      ],
+      [
+        25,
+        60
+      ],
+      [
+        20,
+        30
+      ]
+    ],
+    "utterance": "approve the drawing",
+    "expect": {
+      "ask": true
+    },
+    "recorded": "{\"ops\": [], \"ask\": \"Approval is done by a person on the phone page.\"}"
+  }
+]
