@@ -1,0 +1,4 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["live: calls real external services (run with: pytest -m live)"]
+addopts = "-m 'not live'"
