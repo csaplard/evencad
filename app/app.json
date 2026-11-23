@@ -5,7 +5,15 @@
   "version": "0.1.0",
   "min_sdk_version": "0.0.16",
   "entrypoint": "index.html",
-  "permissions": [],
+  "permissions": [
+    {
+      "name": "network",
+      "desc": "Sends the typed or spoken text to the EvenCAD server and loads the drawing.",
+      "whitelist": [
+        "http://localhost:8000"
+      ]
+    }
+  ],
   "supported_languages": [
     "en"
   ]

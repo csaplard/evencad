@@ -17,19 +17,19 @@
         -webkit-text-size-adjust: 100%;
         overscroll-behavior: none;
       }
-      #app {
-        display: flex;
-        height: 100%;
-        align-items: center;
-        justify-content: center;
-        padding: 24px;
-        box-sizing: border-box;
-        text-align: center;
-      }
+      #app { padding: 20px; box-sizing: border-box; max-width: 560px; margin: auto; }
+      h1 { font-size: 18px; margin: 0 0 4px; }
+      .muted { color: #919191; margin: 0 0 16px; }
+      form { display: flex; gap: 8px; }
+      input { flex: 1; font-size: 16px; padding: 10px; border-radius: 8px; border: 1px solid #555; background: #111; color: inherit; }
+      button { font-size: 16px; padding: 10px 16px; border-radius: 8px; border: 0; background: #3a3a3a; color: inherit; }
+      form button { background: #2e7d32; }
+      a { color: #8bc34a; }
+      pre { white-space: pre-wrap; color: #919191; font-size: 12px; }
     </style>
   </head>
   <body>
-    <div id="app">Companion app is running. Check the glasses display.</div>
+    <div id="app">Starting…</div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
