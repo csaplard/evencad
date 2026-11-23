@@ -51,6 +51,8 @@ speech → Whisper (on our server) → text → Claude (interpreter) → typed o
   One look shows what the last sentence did. Undo moves the mark back.
 
   ![Active segment in 2D and 3D](docs/img/active-segment.png)
+- Quick fix: say "no" or "wrong" (or long press) when the read-back is not what you said.
+  The last entry is taken back without a model call, and the app listens again at once.
 - Tap also accepts a warning. Double tap opens the system exit dialog.
 - Swipe turns the drawing: 2D side view with dimensions, then a 3D line view at 30°, 60°, 90° (end view), 120°, 150°.
   The glasses show images only, so the 3D view turns in steps, one image per step.
@@ -164,7 +166,7 @@ Current mapping (simulator). It is checked again on real G2.
 | Double tap | system exit dialog (store rule) |
 | Voice: "undo", "finish" | undo the last change / build the files |
 | Swipe down / swipe up | next view / previous view (2D, then 3D at 30°, 60°, 90°, 120°, 150°) |
-| Long press | not used yet |
+| Long press | undo the last entry and listen again |
 
 ## Tests
 

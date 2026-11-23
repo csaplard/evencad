@@ -78,3 +78,8 @@ Each item has a safe default. We work with the default until we know more.
 
 48. **Thicker lines on the glasses only.** The mark is in the glasses images. The DXF and the PDF do not have it. Check on real G2 that 5 px against 2 px is easy to see. The G2 has 16 grey levels, so a dimmer rest of the part is another option.
 49. **After a delete there is no mark.** The deleted segment is gone, so nothing is marked until the next change.
+
+## Added with the quick fix (Nov 23)
+
+50. **"No" alone means undo.** The list of such sentences is short and strict (`is_rejection` in `server/core/guide.py`). "No chamfer" or "no, the second one is 28" still go to the interpreter. Test by voice that Whisper hears a lone "no" well. If not, long press does the same.
+51. **Long press on real G2.** The OS uses "tap, then long press" for its own menu (docs/sdk-notes.md). Check that a plain long press reaches the app. In the simulator it does.

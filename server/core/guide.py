@@ -100,6 +100,18 @@ def parse_number(text: str, field: Field) -> Optional[float]:
     return value if value and value > 0 else None
 
 
+_REJECTIONS = {
+    "no", "nope", "no no", "wrong", "that's wrong", "that is wrong", "not that", "not right",
+    "undo", "undo that", "go back", "cancel", "cancel that",
+}
+
+
+def is_rejection(text: str) -> bool:
+    """True when the whole sentence only says "that was wrong". It means: undo the last entry."""
+    s = re.sub(r"[.,!?]", " ", text.lower()).replace("’", "'")
+    return " ".join(s.split()) in _REJECTIONS
+
+
 def next_step(spec: ShaftSpec, pending_diameter: Optional[float]) -> dict:
     """What the display asks for next."""
     n = len(spec.segments) + 1

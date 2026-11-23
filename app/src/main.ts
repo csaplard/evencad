@@ -108,6 +108,7 @@ function show(next: SessionState) {
   // One display line holds about 45 characters. Long sentences are cut at the end.
   const short = heard && heard.length > 44 ? `${heard.slice(0, 43)}…` : heard
   let status = short ? `"${short}"` : 'EvenCAD · ready'
+  if (next.undone) status = 'Undone'
   if (ask) status = `? ${ask}`
   else if (error) status = `! ${error}`
   setText(STATUS, status)
@@ -169,7 +170,7 @@ const say = (text: string) => run(`"${text}" …`, () => sendUtterance(state!.id
 // or after 20 s. The frames are sent as one WAV file and then dropped.
 let recorder: Recorder | null = null
 
-async function startListening() {
+async function startListening(prefix = '') {
   if (!state || busy || recorder) return
   const ok = await bridge.audioControl(true, AudioInputSource.Glasses)
   if (!ok) {
@@ -178,7 +179,7 @@ async function startListening() {
   }
   recorder = new Recorder()
   const g = state.guide
-  setText(STATUS, g ? `Listening… segment ${g.segment} ${g.field}?` : 'Listening… tap to stop')
+  setText(STATUS, prefix + (g ? `Listening… segment ${g.segment} ${g.field}?` : 'Listening… tap to stop'))
 }
 
 async function stopListening() {
@@ -194,8 +195,21 @@ async function stopListening() {
   const wav = rec.finish()
   const wasLength = state.guide?.field === 'length'
   await run('Thinking…', () => sendAudio(state!.id, wav))
+  // Quick fix: "no" took the last entry back. Listen for the right value at once.
+  if (state?.undone) await startListening('Undone. ')
   // A diameter was just given: listen for its length at once, with no extra tap.
-  if (!wasLength && state?.guide?.field === 'length' && !state.ask && !state.error) await startListening()
+  else if (!wasLength && state?.guide?.field === 'length' && !state.ask && !state.error) await startListening()
+}
+
+// Long press = the same quick fix by hand: undo, then listen again.
+async function undoAndListen() {
+  if (!state || busy) return
+  if (recorder) {
+    recorder = null
+    await bridge.audioControl(false)
+  }
+  await run('Undo…', () => undo(state!.id))
+  if (state?.undone) await startListening('Undone. ')
 }
 
 function onTap() {
@@ -231,6 +245,11 @@ const unsubscribe = bridge.onEvenHubEvent(event => {
   if (sysType === OsEventTypeList.CLICK_EVENT || textType === OsEventTypeList.CLICK_EVENT) {
     // Tap = talk, stop talking, or accept a warning.
     onTap()
+    return
+  }
+
+  if (sysType === OsEventTypeList.LONG_PRESS_EVENT || textType === OsEventTypeList.LONG_PRESS_EVENT) {
+    undoAndListen()
     return
   }
 

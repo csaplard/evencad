@@ -20,7 +20,7 @@ from pydantic import BaseModel, Field
 
 from server.ai.interpreter import Interpreter, InterpreterError, get_interpreter
 from server.ai.stt import MAX_WAV_BYTES, AudioError, SttError, SttProvider, get_stt, wav_to_pcm
-from server.core.guide import next_step, parse_number
+from server.core.guide import is_rejection, next_step, parse_number
 from server.core.ops import AddSegment, Finish, OpError, Undo, active_after, apply_ops
 from server.core.readback import readback
 from server.core.validation import validate
@@ -154,6 +154,7 @@ def create_app(
             "ask": None,
             "error": None,
             "needs_confirm": False,
+            "undone": False,
             **extra,
         }
 
@@ -236,6 +237,12 @@ def create_app(
         sid = session.spec.id
         t0 = time.perf_counter()
 
+        # Quick fix: "no" or "wrong" alone takes the last entry back. No model call.
+        if is_rejection(text):
+            problem = do_undo(session)
+            store.save(session)
+            return state(session, heard=text, error=problem, undone=problem is None, timing_ms={**timing, "interpret": 0})
+
         # Guided measuring: a bare number answers the question on the display. No model call.
         field = "diameter" if session.pending_diameter is None else "length"
         number = None if session.finished else parse_number(text, field)
@@ -294,6 +301,8 @@ def create_app(
             problem = do_undo(session)
             if problem:
                 extra["error"] = problem
+            else:
+                extra["undone"] = True
         if any(isinstance(op, Finish) for op in result.ops):
             extra.update(do_finish(session, confirm_warnings=False))
 
@@ -305,7 +314,7 @@ def create_app(
         session = load(sid)
         problem = do_undo(session)
         store.save(session)
-        return state(session, error=problem)
+        return state(session, error=problem, undone=problem is None)
 
     @app.post("/session/{sid}/finish")
     def finish(sid: str, body: Optional[FinishIn] = None):

@@ -27,6 +27,8 @@ export interface SessionState {
   ask: string | null
   error: string | null
   needs_confirm: boolean
+  // True when this call took the last entry back. The app then listens again at once.
+  undone: boolean
 }
 
 async function call(path: string, body?: unknown): Promise<SessionState> {
