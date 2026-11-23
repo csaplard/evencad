@@ -1,0 +1,27 @@
+# secrets
+.env
+.env.*
+!.env.example
+
+# node
+node_modules/
+dist/
+*.ehpk
+
+# python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+*.egg-info/
+
+# runtime data (sessions, exports, audio)
+data/
+
+# simulator screenshots, editor, OS
+/*.png
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+.claude/
