@@ -291,3 +291,16 @@ Rules: small commits, tests first for core logic, no secrets in git, put open qu
 
 ## Naming notes
 "Build it" can suggest manufacturing. The system makes drawings and files only. Alternative slogan: **Say it. See it. Sign it.**
+
+## Reality check (added Nov 23, after reading the SDK docs)
+
+Details and sources are in `docs/sdk-notes.md`. These points change earlier sections:
+
+- **Drawing (3, 6.3).** There is no pixel API. A drawing is a PNG sent to an image container. One image container is at most 288 × 144, and a page holds four. Default layout: two images side by side (576 × 144) for the drawing, text containers for status and read-back.
+- **Display (3).** The panel has 16 grey levels, not 1 bit. We still draw in pure black and white.
+- **Client-side drawing (4).** The glasses app cannot draw lines itself in a useful way. The backend renders the PNG (`GET /session/{id}/render`). This endpoint is now required, not a fallback.
+- **Inputs (6.6).** Double tap on the root page must open the system exit dialog. It cannot be used for undo. Free gestures: tap, swipe up, swipe down, long press, contextual menu. A single tap arrives with no event type.
+- **Audio (6.7).** The SDK gives PCM 16 kHz, 16-bit, mono, in about 100 ms frames. The app collects the frames and posts one WAV.
+- **Name (naming notes).** The store name must not contain "Even". `app.json` uses a working name until a final name is chosen.
+- **Session id (5).** Ids are `s_<date>_<6 random hex>`, so the phone page cannot be guessed.
+- **Hungarian (2, stretch).** The store has no `hu` language. Dictation in Hungarian is still possible through STT.
