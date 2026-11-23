@@ -356,4 +356,20 @@ code{{color:#9e9e9e}}
 </body></html>"""
 
 
+def warm_up_stt() -> None:
+    """Load the speech model in the background, so the first sentence is not slow."""
+    import threading
+
+    def load():
+        try:
+            get_stt().transcribe(b"\x00\x00" * 8000)  # half a second of silence
+            log.info("speech model is ready")
+        except Exception as e:  # warm-up must never stop the server
+            log.warning("speech model warm-up failed: %s", e)
+
+    threading.Thread(target=load, name="stt-warmup", daemon=True).start()
+
+
 app = create_app()
+if os.environ.get("STT_WARMUP") == "1":
+    warm_up_stt()

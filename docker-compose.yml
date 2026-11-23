@@ -1,0 +1,19 @@
+# One command for the backend:  docker compose up --build
+# It reads .env if the file exists. Without ANTHROPIC_API_KEY the server starts,
+# but a sentence gets a clear "API is not set up" answer.
+services:
+  backend:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATA_DIR: /srv/data
+      # Paths inside the container (the data folder is shared with the host).
+      GOOGLE_TOKEN_FILE: /srv/data/google_token.json
+      GOOGLE_OAUTH_CLIENT_FILE: /srv/data/google_client.json
+    volumes:
+      - ./data:/srv/data
+    restart: unless-stopped

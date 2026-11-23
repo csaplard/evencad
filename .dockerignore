@@ -1,0 +1,11 @@
+.git
+.venv
+.env
+.env.*
+data
+app
+docs
+tests
+**/__pycache__
+**/node_modules
+*.ehpk
