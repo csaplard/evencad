@@ -40,6 +40,8 @@ class Segment(BaseModel):
     chamfer_left: Optional[Chamfer] = None
     chamfer_right: Optional[Chamfer] = None
     keyway: Optional[Keyway] = None
+    fit: Optional[str] = None  # ISO 286 shaft fit as text, for example "h6". A note only.
+    roughness: Optional[float] = None  # Ra in micrometres. A note only.
 
 
 class ShaftSpec(BaseModel):

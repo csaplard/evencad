@@ -5,6 +5,7 @@ Every text is at most 40 characters, so it fits one display line.
 """
 
 import math
+import re
 from typing import Optional
 
 from pydantic import BaseModel, Field
@@ -25,6 +26,12 @@ class Message(BaseModel):
     code: str
     text: str = Field(max_length=40)
     segment: Optional[int] = None  # 1-based. None = the whole part.
+
+
+# ISO 286 shaft fits: a deviation letter (lower case) and a tolerance grade 1 to 18.
+_FIT_RE = re.compile(r"(a|b|c|cd|d|e|ef|f|fg|g|h|js|j|k|m|n|p|r|s|t|u|v|x|y|z|za|zb|zc)([1-9]|1[0-8])")
+# Preferred Ra values in micrometres (ISO 1302 series).
+RA_SERIES = (0.025, 0.05, 0.1, 0.2, 0.4, 0.8, 1.6, 3.2, 6.3, 12.5, 25, 50)
 
 
 class Report(BaseModel):
@@ -91,6 +98,11 @@ def validate(spec: ShaftSpec, limits: Optional[Limits] = None) -> Report:
                 err("CHAMFER_NO_EDGE", f"Seg {i}: no free edge for chamfer", i)
             elif chamfer_depth(c) > free + 1e-9:
                 err("CHAMFER_TOO_DEEP", f"Seg {i}: chamfer deeper than edge", i)
+
+        if s.fit and not _FIT_RE.fullmatch(s.fit):
+            err("BAD_FIT", f"Seg {i}: {s.fit[:6]} is not a shaft fit", i)
+        if s.roughness and s.roughness not in RA_SERIES:
+            warn("RA_NOT_STANDARD", f"Seg {i}: Ra {fmt(s.roughness)} is not standard", i)
 
         if s.keyway:
             size = keyway_size(s.diameter)

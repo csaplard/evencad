@@ -44,6 +44,16 @@ class Slot:
 
 
 @dataclass(frozen=True)
+class Mark:
+    """A surface roughness note. (x, y) is the point on the top outline that it points at."""
+
+    x: float
+    y: float
+    text: str  # "Ra 1.6"
+    segment: int
+
+
+@dataclass(frozen=True)
 class Style:
     name: Literal["glasses", "sheet"] = "sheet"
     # Glasses only: with more segments than this, show the dimensions of the
@@ -57,6 +67,7 @@ class Drawing:
     lines: list[Line] = field(default_factory=list)
     dims: list[Dim] = field(default_factory=list)
     slots: list[Slot] = field(default_factory=list)
+    marks: list[Mark] = field(default_factory=list)
     length: float = 0
     max_diameter: float = 0
 
@@ -143,7 +154,10 @@ def draw_shaft(spec: ShaftSpec, style: Optional[Style] = None) -> Drawing:
             for slot in d.slots:
                 if slot.segment == i and slot.x2 < x + s.length:
                     mid = (slot.x2 + x + s.length) / 2  # beside the keyway, not across it
-            d.dims.append(Dim("diameter", (mid, -r), (mid, r), s.diameter, "Ø" + fmt(s.diameter), i))
+            label = "Ø" + fmt(s.diameter) + (f" {s.fit}" if s.fit else "")
+            d.dims.append(Dim("diameter", (mid, -r), (mid, r), s.diameter, label, i))
+        if s.roughness:
+            d.marks.append(Mark(x + s.length / 4, r, f"Ra {fmt(s.roughness)}", i))
         x += s.length
     r_max = d.max_diameter / 2
     d.dims.append(Dim("overall", (0, -r_max), (d.length, -r_max), d.length, fmt(d.length), None))

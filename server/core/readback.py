@@ -24,7 +24,7 @@ def readback(spec: ShaftSpec) -> str:
 
     n = len(segs)
     head = f"{n} step" + ("" if n == 1 else "s")
-    dims = [f"Ø{fmt(s.diameter)}×{fmt(s.length)}" for s in segs]
+    dims = [f"Ø{fmt(s.diameter)}{s.fit or ''}×{fmt(s.length)}" for s in segs]
     tail = f"L{fmt(spec.total_length)}"
     m = mass(spec)  # only when the material is in the density table
     if m:
@@ -42,6 +42,9 @@ def readback(spec: ShaftSpec) -> str:
         if s.keyway:
             size = keyway_size(s.diameter)
             chamfers.append(f"KW{i} {fmt(size.width) if size else '?'}×{fmt(s.keyway.length)}")
+
+    # Roughness: "Ra1.6 #2" = Ra 1.6 on segment 2.
+    chamfers += [f"Ra{fmt(s.roughness)} #{i}" for i, s in enumerate(segs, start=1) if s.roughness]
 
     text = SEP.join([head, *dims, *chamfers, tail])
     if len(text) <= MAX_CHARS:

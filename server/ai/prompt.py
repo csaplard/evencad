@@ -24,7 +24,12 @@ Allowed operations (use only these, with only these fields):
 {"op": "set_keyway", "index": number or "last", "length": number}
     A keyway (key slot, key seat) on one segment. Give only its length. Length 0 removes it.
     Width and depth come from a standard table by the diameter. Never output them, even if they are spoken.
+{"op": "set_fit", "index": number or "last", "fit": string}
+    An ISO shaft fit as text, lower case, for example "h6", "k6", "js5". "" removes it. It is a note on the drawing only.
+{"op": "set_roughness", "index": number or "last", "ra": number}
+    Surface roughness Ra in micrometres, for example 1.6. 0 removes it. It is a note on the drawing only.
 {"op": "set_material", "text": string}
+    Write the material the way it is written on a drawing: "C45", "42CrMo4", "S355", "1.4301", "aluminium 6082".
 {"op": "set_title", "text": string}
 {"op": "undo"}
 {"op": "finish"}
@@ -61,6 +66,10 @@ def describe_spec(spec: ShaftSpec) -> str:
         if s.keyway:
             size = keyway_size(s.diameter)
             extra.append(f"keyway {fmt(size.width) if size else '?'} wide, {fmt(s.keyway.length)} long")
+        if s.fit:
+            extra.append(f"fit {s.fit}")
+        if s.roughness:
+            extra.append(f"Ra {fmt(s.roughness)}")
         lines.append(f"  {i}: diameter {fmt(s.diameter)}, length {fmt(s.length)}" + (", " + ", ".join(extra) if extra else ""))
     lines.append(f"Title: {spec.title}. Material: {spec.material or 'not set'}.")
     return "\n".join(lines)

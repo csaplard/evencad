@@ -77,6 +77,14 @@ def build_dxf(spec: ShaftSpec) -> DxfDoc:
         msp.add_text(note, height=3.0, dxfattribs={"layer": "TEXT", "style": TEXT_STYLE}).set_placement(
             (MARGIN + 4, SHEET_H - MARGIN - 8 - 5 * n), align=TextEntityAlignment.LEFT)
 
+    # Surface roughness: a small "V" on the top outline, with the Ra value.
+    for mark in drawing.marks:
+        x, y = pt((mark.x, mark.y))
+        msp.add_line((x, y), (x - 1.5, y + 2.6), dxfattribs={"layer": "DIM"})
+        msp.add_line((x, y), (x + 3.0, y + 5.2), dxfattribs={"layer": "DIM"})
+        msp.add_text(mark.text, height=2.5, dxfattribs={"layer": "TEXT", "style": TEXT_STYLE}).set_placement(
+            (x + 3.5, y + 3.2), align=TextEntityAlignment.LEFT)
+
     dim_attribs = {"layer": "DIM"}
     override = {"dimlfac": 1 / scale, "dimtxt": 3.0, "dimasz": 2.5, "dimexo": 1.0, "dimexe": 1.5, "dimgap": 1.0, "dimdec": 2, "dimzin": 8, "dimclrt": 3}
     half = drawing.max_diameter * scale / 2
@@ -93,7 +101,7 @@ def build_dxf(spec: ShaftSpec) -> DxfDoc:
             # so the text stays readable.
             x = a[0]
             dim = msp.add_linear_dim(
-                base=(x, oy), p1=a, p2=b, angle=90, text="Ø<>", dimstyle="EZDXF",
+                base=(x, oy), p1=a, p2=b, angle=90, text="Ø<>" + d.text[len("Ø" + fmt(d.value)):], dimstyle="EZDXF",
                 override=override, dxfattribs=dim_attribs,
             )
         dim.render()

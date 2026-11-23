@@ -60,6 +60,18 @@ class SetKeyway(_Op):
     length: float  # 0 removes the keyway. Width and depth are not here: they come from a table.
 
 
+class SetFit(_Op):
+    op: Literal["set_fit"]
+    index: Index
+    fit: str = Field(max_length=6)  # "h6". An empty text removes it.
+
+
+class SetRoughness(_Op):
+    op: Literal["set_roughness"]
+    index: Index
+    ra: float  # Ra in micrometres. 0 removes it.
+
+
 class SetMaterial(_Op):
     op: Literal["set_material"]
     text: str = Field(max_length=60)
@@ -79,7 +91,7 @@ class Finish(_Op):
 
 
 Op = Annotated[
-    Union[AddSegment, EditSegment, DeleteSegment, SetChamfer, SetKeyway, SetMaterial, SetTitle, Undo, Finish],
+    Union[AddSegment, EditSegment, DeleteSegment, SetChamfer, SetKeyway, SetFit, SetRoughness, SetMaterial, SetTitle, Undo, Finish],
     Field(discriminator="op"),
 ]
 _op_adapter = TypeAdapter(Op)
@@ -164,6 +176,14 @@ def apply_op(spec: ShaftSpec, op: Op) -> ShaftSpec:
     elif isinstance(op, SetKeyway):
         segs[_position(new, op.index)].keyway = Keyway(length=op.length) if op.length > 0 else None
 
+    elif isinstance(op, SetFit):
+        segs[_position(new, op.index)].fit = op.fit.strip().lower() or None
+
+    elif isinstance(op, SetRoughness):
+        if op.ra < 0:
+            raise OpError("Roughness cannot be below 0")
+        segs[_position(new, op.index)].roughness = op.ra or None
+
     elif isinstance(op, SetMaterial):
         new.material = op.text.strip() or None
 
@@ -188,7 +208,7 @@ def active_after(spec: ShaftSpec, ops: list[Op], current: Optional[int]) -> Opti
         n = len(spec.segments)
         if isinstance(op, AddSegment):
             active = op.at or n
-        elif isinstance(op, (EditSegment, SetKeyway)):
+        elif isinstance(op, (EditSegment, SetKeyway, SetFit, SetRoughness)):
             active = _position(spec, op.index) + 1
         elif isinstance(op, DeleteSegment):
             active = None
