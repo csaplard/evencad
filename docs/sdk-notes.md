@@ -54,7 +54,7 @@ await bridge.textContainerUpgrade(new TextContainerUpgrade({
   `containerID` and `containerName` must match exactly. A mismatch does nothing, with no error. [docs]
 - Debounce text writes (the `asr` template uses 120 ms): the Bluetooth render queue is slow. [tpl]
 
-### Image (this is how EvenCAD draws the shaft)
+### Image (this is how SayCAD draws the shaft)
 - An image container is `width` 20–288, `height` 20–144. [sdk] So one image is at most **288 × 144**, a quarter of the screen. [docs]
 - An image container cannot capture events. Put a full-screen text container with `content: ' '` and `isEventCapture: 1` behind it. [docs][tpl]
 - The image cannot be sent in the create call. Create the container, then call `updateImageRawData`. [sdk][docs]
@@ -73,7 +73,7 @@ const result = await bridge.updateImageRawData(new ImageRawDataUpdate({
 - A full-screen image refresh took about 800 ms in the docs' own test. [docs]
 - The simulator is faster than the glasses and does not enforce size limits. [sim]
 
-**Consequence for EvenCAD.** There is no pixel-drawing API ("no arbitrary pixel drawing" [docs]).
+**Consequence for SayCAD.** There is no pixel-drawing API ("no arbitrary pixel drawing" [docs]).
 A drawing is a PNG pushed into an image container. Options:
 
 | Option | Layout | Cost |
@@ -131,12 +131,12 @@ Rules we must follow:
    [seen]: swipe down arrived as `{"textEvent":{"containerID":1,"containerName":"main","eventType":2}}`.
    Check both envelopes for double tap, so the user can always exit. [tpl]
 3. **Double tap on the root page must call `bridge.shutDownPageContainer(1)`** (the system exit dialog). Mode `0` (exit at once) is not accepted by review. [docs]
-   So double tap is reserved. EvenCAD cannot use it for "undo".
+   So double tap is reserved. SayCAD cannot use it for "undo".
 4. Long press comes as two `sysEvent`s (start and release). The OS uses "tap, then long press" for its own menu. Treat long press as an extra, not as the only way. [docs]
 5. No capture container → input is dropped silently. [docs][sim]
 6. Do not listen for DOM `click`. [docs]
 
-Free gestures for EvenCAD: tap, swipe up, swipe down, long press (hold-to-talk fits well), contextual menu.
+Free gestures for SayCAD: tap, swipe up, swipe down, long press (hold-to-talk fits well), contextual menu.
 The final mapping is decided on real G2 and goes into the README.
 
 Simulator inputs: Up, Down, Click, Double Click, Long Press, Long Press Release, Context Menu. [sim]
@@ -209,7 +209,7 @@ CORS [docs]:
 - JSON bodies and custom headers cause a preflight. The server must answer `OPTIONS` with `Access-Control-Allow-Methods` and `Access-Control-Allow-Headers`.
 - A third-party API without CORS must go through our own server.
 
-For EvenCAD: one whitelist entry, our backend origin. FastAPI gets `CORSMiddleware`.
+For SayCAD: one whitelist entry, our backend origin. FastAPI gets `CORSMiddleware`.
 The backend needs a public **HTTPS** address for the real G2 test (see `open-questions.md`).
 
 Storage: `bridge.setLocalStorage(key, value)` / `getLocalStorage(key)` survive restarts. [sdk][docs]
@@ -221,7 +221,7 @@ npm run dev                                      # Vite on port 5173
 evenhub-simulator http://localhost:5173           # simulator; the URL is required [seen]
 evenhub qr --url http://<LAN-IP>:5173             # real glasses: scan in the Even app (developer mode)
 npm run build
-evenhub pack app.json dist -o evencad.ehpk        # package
+evenhub pack app.json dist -o saycad.ehpk        # package
 ```
 
 - QR sideload stops when the phone app goes to the background. Lock-screen tests need a beta build. [docs]

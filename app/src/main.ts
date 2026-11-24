@@ -40,7 +40,7 @@ const created = await bridge.createStartUpPageContainer(
       new TextContainerProperty({
         xPosition: 0, yPosition: 0, width: 576, height: 44,
         containerID: STATUS.id, containerName: STATUS.name, zOrderIndex: 2,
-        borderWidth: 0, paddingLength: 4, content: 'EvenCAD · connecting…', isEventCapture: 0,
+        borderWidth: 0, paddingLength: 4, content: 'SayCAD · connecting…', isEventCapture: 0,
       }),
       new TextContainerProperty({
         xPosition: 0, yPosition: 196, width: 576, height: 92,
@@ -119,7 +119,7 @@ function show(next: SessionState) {
 
   // One display line holds about 45 characters. Long sentences are cut at the end.
   const short = heard && heard.length > 44 ? `${heard.slice(0, 43)}…` : heard
-  let status = short ? `"${short}"` : 'EvenCAD · ready'
+  let status = short ? `"${short}"` : 'SayCAD · ready'
   if (next.undone) status = 'Undone'
   if (ask) status = `? ${ask}`
   else if (error) status = `! ${error}`
@@ -321,7 +321,7 @@ const unsubscribe = bridge.onEvenHubEvent(event => {
     if (recorder) {
       recorder = null
       bridge.audioControl(false)
-      setText(STATUS, 'EvenCAD · ready')
+      setText(STATUS, 'SayCAD · ready')
     }
     return
   }
@@ -341,7 +341,7 @@ const unsubscribe = bridge.onEvenHubEvent(event => {
 const app = document.querySelector<HTMLDivElement>('#app')!
 app.innerHTML = `
   <main>
-    <h1>EvenCAD</h1>
+    <h1>SayCAD</h1>
     <p class="muted">Tap the glasses and speak. Typed text is the fallback. The drawing is on the glasses.</p>
     <form id="say">
       <input id="text" autocomplete="off" placeholder="diameter thirty, forty long" />
@@ -387,7 +387,7 @@ app.querySelector('#turn')!.addEventListener('click', () => turnView(1))
 app.querySelector('#undo')!.addEventListener('click', () => state && run('Undo…', () => undo(state!.id)))
 app.querySelector('#finish')!.addEventListener('click', () => state && run('Finishing…', () => finish(state!.id, false)))
 
-await run('EvenCAD · connecting…', createSession)
+await run('SayCAD · connecting…', createSession)
 
 // Development hook: http://localhost:5173/?say=first sentence|second sentence
 // sends the sentences one by one. It lets a script drive the simulator.

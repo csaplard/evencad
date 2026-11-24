@@ -5,7 +5,7 @@ import os
 import pytest
 
 # Must be set before server.main is imported: it builds the default app at import time.
-os.environ["EVENCAD_SKIP_DOTENV"] = "1"
+os.environ["SAYCAD_SKIP_DOTENV"] = "1"
 
 _KEEP_FOR_LIVE = {"INTERPRETER", "ANTHROPIC_API_KEY", "CLAUDE_MODEL", "CLAUDE_CLI_MODEL"}
 _SERVICE_VARS = [

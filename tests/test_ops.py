@@ -1,4 +1,4 @@
-"""Every operation from EVENCAD_SPEC.md section 5."""
+"""Every operation from SAYCAD_SPEC.md section 5."""
 
 import pytest
 from pydantic import ValidationError

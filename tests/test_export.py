@@ -1,4 +1,4 @@
-"""Exports: STEP, DXF, PDF (EVENCAD_SPEC.md, section 6.4). Each file is loaded again."""
+"""Exports: STEP, DXF, PDF (SAYCAD_SPEC.md, section 6.4). Each file is loaded again."""
 
 import math
 from datetime import datetime, timezone

@@ -1,4 +1,4 @@
-# EvenCAD — Voice-to-Engineering for Even Realities G2
+# SayCAD — Voice-to-Engineering for Even Realities G2
 
 > Think it. Say it. Build it. (working slogan; see "Naming notes" at the end)
 
@@ -43,7 +43,7 @@ Discs, flanges, assemblies, threads, tolerances beyond a simple text note, GD&T,
 
 ## 2b. How we are judged (hackathon page checked on Nov 22 — the weights changed since Nov 18)
 
-| Criterion | Weight | What it means for EvenCAD |
+| Criterion | Weight | What it means for SayCAD |
 |---|---|---|
 | Usefulness on G2 | 25% | A real moment: measuring a part with hands busy. Works at a glance and hands-free. |
 | Read and write | 20% | Say a short phrase, confirm with one tap or the ring. Smart defaults and read-back, not long dictation. |
@@ -225,7 +225,7 @@ Layout idea (576×288): top line = status and heard text, centre = drawing, bott
 /tests          pytest (unit + golden transcripts)
 /samples        sample transcripts and expected specs
 /docs           sdk-notes.md, demo-script.md
-README.md  FEATURE_REQUESTS.md  .env.example  EVENCAD_SPEC.md
+README.md  FEATURE_REQUESTS.md  .env.example  SAYCAD_SPEC.md
 ```
 
 ## 8. Tests (write them with the code, not after)
@@ -280,7 +280,7 @@ Also add a short section **"Path to launch in Even Hub"** (the judges score it):
 ## Appendix: first prompt for Claude Code (use at 09:00 Budapest / 12:00 Dubai on Nov 23, after the kickoff briefing)
 
 ```
-Read EVENCAD_SPEC.md completely. This is the first day of the hackathon (the repo starts now).
+Read SAYCAD_SPEC.md completely. This is the first day of the hackathon (the repo starts now).
 1. Read the Even Hub docs and my notes from the kickoff briefing (I will paste them). Write docs/sdk-notes.md:
    how to draw on the display, how to get microphone audio, which input events exist (glasses touch, R1 ring),
    how app.json whitelisting and CORS work, packaging to .ehpk. Do not guess any API.
@@ -303,7 +303,7 @@ Details and sources are in `docs/sdk-notes.md`. These points change earlier sect
 - **Client-side drawing (4).** The glasses app cannot draw lines itself in a useful way. The backend renders the PNG (`GET /session/{id}/render`). This endpoint is now required, not a fallback.
 - **Inputs (6.6).** Double tap on the root page must open the system exit dialog. It cannot be used for undo. Free gestures: tap, swipe up, swipe down, long press, contextual menu. A single tap arrives with no event type.
 - **Audio (6.7).** The SDK gives PCM 16 kHz, 16-bit, mono, in about 100 ms frames. The app collects the frames and posts one WAV.
-- **Name (naming notes).** The store name must not contain "Even". `app.json` uses a working name until a final name is chosen.
+- **Name (naming notes).** The store name must not contain "Even". The final name is "SayCAD" (chosen on Nov 24). Before that the project was called "EvenCAD".
 - **Session id (5).** Ids are `s_<date>_<6 random hex>`, so the phone page cannot be guessed.
 - **Hungarian (2, stretch).** The store has no `hu` language. Dictation in Hungarian is still possible through STT.
 - **Claude call (4, suggested stack).** Temperature cannot be set on current models, so it is not sent. The answer is plain JSON checked by Pydantic, not tool use, so the CLI and API adapters stay identical. Thinking is off and effort is low, for speed.

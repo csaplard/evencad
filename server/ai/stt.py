@@ -1,4 +1,4 @@
-"""Speech to text (EVENCAD_SPEC.md, sections 4 and 6.7).
+"""Speech to text (SAYCAD_SPEC.md, sections 4 and 6.7).
 
 The glasses give PCM: 16 kHz, signed 16-bit little-endian, mono.
 The app sends one utterance as a WAV file. Audio is handled in memory only.

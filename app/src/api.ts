@@ -1,4 +1,4 @@
-// Calls to the EvenCAD backend. All external calls go through this one server.
+// Calls to the SayCAD backend. All external calls go through this one server.
 
 export const BACKEND: string = (import.meta.env.VITE_BACKEND_URL as string | undefined) ?? 'http://localhost:8000'
 

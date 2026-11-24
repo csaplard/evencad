@@ -17,7 +17,7 @@ from server.ai.prompt import describe_spec
 from server.core.spec import ShaftSpec
 from server.core.validation import Report
 
-log = logging.getLogger("evencad")
+log = logging.getLogger("saycad")
 
 MAX_NOTES = 3
 MAX_NOTE_CHARS = 90

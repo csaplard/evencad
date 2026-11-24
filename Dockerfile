@@ -1,4 +1,4 @@
-# EvenCAD backend (FastAPI). The glasses app and the simulator run on the host.
+# SayCAD backend (FastAPI). The glasses app and the simulator run on the host.
 FROM python:3.11-slim
 
 # OpenCascade (CadQuery) needs a few system libraries, even without a display.

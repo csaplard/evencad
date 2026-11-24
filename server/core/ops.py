@@ -1,4 +1,4 @@
-"""Operations: the only thing the AI may output (EVENCAD_SPEC.md, section 5).
+"""Operations: the only thing the AI may output (SAYCAD_SPEC.md, section 5).
 
 `apply_op` is plain code. It returns a new spec and never changes its input.
 `undo` and `finish` are session actions. The session layer handles them.

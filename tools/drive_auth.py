@@ -3,7 +3,7 @@
     python -m tools.drive_auth
 
 It opens a browser. You sign in and allow "See and manage files created by this app".
-Then it saves the token (outside git) and creates the EvenCAD folder in your Drive.
+Then it saves the token (outside git) and creates the SayCAD folder in your Drive.
 Copy the printed GOOGLE_DRIVE_FOLDER_ID line into .env.
 
 Before the first run: create an OAuth client of type "Desktop app" in the Google Cloud
@@ -19,7 +19,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from server.drive import DEFAULT_TOKEN_FILE, FOLDER_MIME, SCOPES, build_service
 from server.main import _load_env_file
 
-ROOT_FOLDER_NAME = "EvenCAD drawings"
+ROOT_FOLDER_NAME = "SayCAD drawings"
 
 
 def main() -> int:

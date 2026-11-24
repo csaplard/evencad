@@ -7,7 +7,7 @@ Every sentence here must be true on the day of the submission. Check the list at
 
 ## Name
 
-EvenCAD
+SayCAD
 
 ## Track
 
@@ -19,7 +19,7 @@ Measure a part with both hands, say the numbers, and your G2 glasses make the en
 
 ## Short description (about 50 words)
 
-EvenCAD turns spoken measurements into an engineering drawing. A worker holds a part and a caliper and says each
+SayCAD turns spoken measurements into an engineering drawing. A worker holds a part and a caliper and says each
 number. The G2 glasses draw the shaft step by step. "Finish" makes a STEP model, a DXF and a PDF drawing. The phone
 stays in the pocket until a person approves the draft.
 
@@ -31,7 +31,7 @@ People who measure parts by hand need both hands: one for the part, one for the 
 Today they write the numbers on paper. Later someone types them into a CAD program. Numbers get lost or swapped.
 A phone does not help here. You cannot hold it and you do not want to touch it.
 
-### What EvenCAD does
+### What SayCAD does
 
 - You tap the glasses once and say a number. The display asks for the next one: `Next: segment 2 diameter?`
 - The shaft grows on the display as you speak. The segment you changed last has thick lines.
@@ -83,7 +83,7 @@ Only the written specification existed before Nov 23. All code was written betwe
 
 ## Links
 
-- Code: https://github.com/csaplard/evencad
+- Code: https://github.com/csaplard/saycad
 - Demo video: (add the link)
 - Package: (add the `.ehpk` file or its link, if the form asks for it)
 

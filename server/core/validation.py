@@ -1,4 +1,4 @@
-"""Deterministic validation (EVENCAD_SPEC.md, section 6.1).
+"""Deterministic validation (SAYCAD_SPEC.md, section 6.1).
 
 Errors block `finish`. Warnings must be confirmed by the user.
 Every text is at most 40 characters, so it fits one display line.

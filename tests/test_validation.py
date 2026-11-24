@@ -1,4 +1,4 @@
-"""Every validation rule from EVENCAD_SPEC.md section 6.1."""
+"""Every validation rule from SAYCAD_SPEC.md section 6.1."""
 
 from server.core.spec import Chamfer, Segment, ShaftSpec
 from server.core.validation import validate

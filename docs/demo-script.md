@@ -1,6 +1,6 @@
 # Demo script (3 minutes)
 
-This is the plan for the demo video. It is also the acceptance test (`EVENCAD_SPEC.md`, section 9).
+This is the plan for the demo video. It is also the acceptance test (`SAYCAD_SPEC.md`, section 9).
 The part is made up. No real production data.
 
 Status on Nov 24: every step below works in the simulator with typed text.
@@ -61,7 +61,7 @@ Times are targets. Speak slowly and leave a short pause after each number.
 | 2:30 | Show the Drive folder tab. | | The same three files. |
 | 2:37 | Phone: type a name, press "Approve for review". Open the PDF again. | "A person approves it." | `Approved for review by: …` |
 | 2:47 | Glasses: one more change. Tap. | "Make the first one thirty two." | The drawing is a DRAFT again. Say "Finish": `DRAFT rev B ready`. |
-| 2:57 | End card. | "EvenCAD. From the part in your hand to a drawing. Hands busy, phone in the pocket." | |
+| 2:57 | End card. | "SayCAD. From the part in your hand to a drawing. Hands busy, phone in the pocket." | |
 
 ## Built, but not in the video
 

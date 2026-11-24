@@ -1,11 +1,11 @@
-# EvenCAD — voice to engineering drawing on Even Realities G2
+# SayCAD — voice to engineering drawing on Even Realities G2
 
 > Say it. See it. Sign it.
 
 **Measure a part with both hands. Say the numbers. Get the drawing. The phone stays in your pocket.**
 
 One hand holds the part. The other hand holds the caliper. Both are oily. You cannot write, and you cannot touch a phone.
-With EvenCAD you say each number as you measure it. The G2 glasses draw the shaft in front of you, step by step.
+With SayCAD you say each number as you measure it. The G2 glasses draw the shaft in front of you, step by step.
 When you say "finish", a STEP model, a DXF and a PDF drawing are ready on your phone and in Google Drive.
 
 ![The shaft grows on the glasses as you speak](docs/img/active-segment.png)
@@ -18,6 +18,7 @@ Built for the "Heads Up: Even Realities Hackathon" (Nov 23–29, 2026).
 Track: **04 · AI Assistants & Work**.
 
 Idea and spec were prepared before Nov 23. All code was written during the hackathon.
+Until Nov 24 the project was called "EvenCAD". The name changed because an Even Hub app name must not contain "Even".
 
 ## In 30 seconds
 
@@ -50,7 +51,7 @@ People who measure and make parts by hand: workshops, small machine shops, maint
 Today they write the numbers on paper with dirty hands. Later someone types them into a CAD program.
 Numbers get lost or swapped on the way.
 
-With EvenCAD the worker says the shaft dimensions out loud. The G2 glasses show a side view that grows as they speak.
+With SayCAD the worker says the shaft dimensions out loud. The G2 glasses show a side view that grows as they speak.
 They confirm with a tap or the R1 ring. At the end they get STEP, DXF and PDF files.
 No computer and no CAD program is needed.
 
@@ -67,7 +68,7 @@ Backend (Python, FastAPI)
 ```
 
 The AI never writes geometry. It only returns small typed operations.
-Full design: [EVENCAD_SPEC.md](EVENCAD_SPEC.md). Demo plan: [docs/demo-script.md](docs/demo-script.md). SDK facts: [docs/sdk-notes.md](docs/sdk-notes.md).
+Full design: [SAYCAD_SPEC.md](SAYCAD_SPEC.md). Demo plan: [docs/demo-script.md](docs/demo-script.md). SDK facts: [docs/sdk-notes.md](docs/sdk-notes.md).
 
 ## What works today
 
@@ -193,7 +194,7 @@ The app asks only for the `drive.file` scope: it can see only the files it creat
 1. In the Google Cloud Console: create a project, enable the **Google Drive API**, set up the OAuth consent screen (add yourself as a test user), and create an **OAuth client ID** of type **Desktop app**.
 2. Download the client file to `data/google_client.json` (the `data/` folder is not in git).
 3. Run `.venv/Scripts/python -m tools.drive_auth`. A browser opens. Sign in and allow access.
-4. The tool creates the folder "EvenCAD drawings" and prints a `GOOGLE_DRIVE_FOLDER_ID=...` line. Put it into `.env`.
+4. The tool creates the folder "SayCAD drawings" and prints a `GOOGLE_DRIVE_FOLDER_ID=...` line. Put it into `.env`.
    Without this line the upload stays off and nothing tells you.
 5. Restart the backend. Each finished session gets its own sub-folder with `shaft.step`, `shaft.dxf`, `shaft.pdf`.
 
@@ -217,7 +218,7 @@ Not tested yet. The planned steps, from the Even Hub docs:
 
 1. The phone must reach the backend. Put the backend address into `app/.env.local` as
    `VITE_BACKEND_URL=...` and into the `whitelist` in `app/app.json` (full origin, for example
-   `https://evencad.example.com`). Plain `http://` works only for a dev server on the same network.
+   `https://saycad.example.com`). Plain `http://` works only for a dev server on the same network.
 2. `cd app && npm run dev`, then `npx evenhub qr --url http://<LAN-IP>:5173`.
 3. In the Even Realities app (developer mode), open Even Hub and scan the QR code.
 4. Package for upload: `npm run pack` makes an `.ehpk` file.
@@ -260,7 +261,7 @@ Current mapping (simulator). It is checked again on real G2.
 
 ## What existed before Nov 23
 
-Only the specification ([EVENCAD_SPEC.md](EVENCAD_SPEC.md)). No code.
+Only the specification ([SAYCAD_SPEC.md](SAYCAD_SPEC.md)). No code.
 
 ## Open-source libraries and tools
 
@@ -292,7 +293,7 @@ It asks for two permissions only: `network` (one origin, our backend) and `g2-mi
 **What is needed to go live.**
 
 - A hosted backend with a fixed HTTPS address (the whitelist is fixed inside the package).
-- A store name without the word "Even" (store rule). The working name in `app.json` is "ShaftCAD Draft".
+- The store name must not contain the word "Even" (store rule). The name is "SayCAD". It was not checked against trademarks.
 - Per-user Google Drive sign-in through a pairing page on the phone. Today the server uses one account.
 - A short pairing code or a QR code that carries the phone page link from the glasses to the phone. Today the link is on the companion page.
 - Usage limits per user, and a spend limit on the API key.

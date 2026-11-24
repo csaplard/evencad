@@ -1,4 +1,4 @@
-"""Vector model of the shaft side view (EVENCAD_SPEC.md, section 6.3).
+"""Vector model of the shaft side view (SAYCAD_SPEC.md, section 6.3).
 
 `draw_shaft` is the single source for the glasses image, the DXF and the PDF.
 Coordinates are millimetres. X runs along the axis from 0. Y is up. The axis is y = 0.

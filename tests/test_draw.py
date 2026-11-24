@@ -1,4 +1,4 @@
-"""Vector model and glasses image (EVENCAD_SPEC.md, section 6.3)."""
+"""Vector model and glasses image (SAYCAD_SPEC.md, section 6.3)."""
 
 import io
 

@@ -137,7 +137,7 @@ def _frame_and_title(msp, spec: ShaftSpec, scale_name: str):
         msp.add_text(s, height=h, dxfattribs={"layer": "TEXT", "style": TEXT_STYLE}).set_placement((x, y), align=TextEntityAlignment.LEFT)
 
     text(spec.title, x0 + 4, y0 + 26, h=7)
-    text("EvenCAD – stepped shaft, side view", x0 + 4, y0 + 16)
+    text("SayCAD – stepped shaft, side view", x0 + 4, y0 + 16)
     text(f"Total length {fmt(spec.total_length)}   Max diameter {fmt(spec.max_diameter)}", x0 + 4, y0 + 8)
 
     m = mass(spec)

@@ -5,7 +5,7 @@ Each item has a safe default. We work with the default until we know more.
 ## Needs an answer from Dániel
 
 1. **App name.** The store rule says the name must not contain "Even". "EvenCAD" breaks this rule.
-   Default: `app.json` uses `"name": "ShaftCAD Draft"`. Repo and project name stay EvenCAD for now. Please pick a final name.
+   Default: `app.json` uses `"name": "ShaftCAD Draft"`. Repo and project name stay EvenCAD for now. Please pick a final name. **Done on Nov 24: the name is SayCAD (see 100).**
 2. **Kickoff briefing.** Not attended. If there is a recap or a recording, paste it. It may change the notes.
 3. **DoraHacks page.** It blocks automated reading (HTTP 405). Submission rules and judging weights in the spec come from Nov 22 and are not re-checked.
 4. **Real G2 access.** Which day is the device available? The spec plans the test for Nov 28. Earlier is safer: image speed and text size decide the layout.
@@ -163,3 +163,10 @@ A second agent reviewed the code of the day. It found 14 issues. All are fixed, 
 97. **The phone page does not refresh by itself.** While the upload runs it says "Google Drive: uploading… Reload the page in a moment."
 98. **An AI hint that is too long is dropped, the other hints stay.** Before, one long hint threw away all hints of that run (seen once with the real API).
 99. **Store name.** The rule is in the Even Hub docs (`docs/sdk-notes.md`): the app `name` must not contain "Even". `app.json` uses "ShaftCAD Draft". The repo, the README and the submission still say "EvenCAD". Pick one final name before the submission.
+
+## Added on Nov 24: new name
+
+100. **The project is now called SayCAD.** Dániel chose it. Everything was renamed: the app name in `app.json`, the package id (`com.csaplard.saycad`), the display texts, the spec file (`SAYCAD_SPEC.md`), the docs and the GitHub repository. Older entries in this file still say "EvenCAD"; they are history.
+101. **The name was not checked against trademarks.** One quick web search found no product called SayCAD. That is not a legal check.
+102. **The Google Drive folder of the dev account is still called "EvenCAD drawings".** It works, because the server uses the folder id. New installs get "SayCAD drawings". Rename the old folder by hand if it will be in the video.
+103. **The variable `EVENCAD_SKIP_DOTENV` is now `SAYCAD_SKIP_DOTENV`.** Only tests and scripts use it.

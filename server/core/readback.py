@@ -1,4 +1,4 @@
-"""Read-back text for the display (EVENCAD_SPEC.md, section 6.2).
+"""Read-back text for the display (SAYCAD_SPEC.md, section 6.2).
 
 Built from the spec by a template. The AI never writes this text.
 Example: "3 steps  Ø30×40  Ø25×60  Ø20×30  C1 right  L130"

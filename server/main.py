@@ -1,4 +1,4 @@
-"""EvenCAD backend (FastAPI).
+"""SayCAD backend (FastAPI).
 
 Run:  uvicorn server.main:app --reload --port 8000
 """
@@ -39,7 +39,7 @@ from server.draw.glasses3d import YAW_STEPS, glasses_3d_tiles, render_glasses_3d
 from server.export import FILE_NAMES, export_all, rebuild_sheets
 from server.sessions import SESSION_ID_PATTERN, Session, SessionStore, Turn, now_iso
 
-log = logging.getLogger("evencad")
+log = logging.getLogger("saycad")
 
 MEDIA = {"step": "model/step", "dxf": "image/vnd.dxf", "pdf": "application/pdf"}
 
@@ -81,7 +81,7 @@ def _fingerprint(spec) -> str:
 
 def _load_env_file(path: Path = Path(".env")) -> None:
     """Tiny .env reader: KEY=value lines. Real environment variables win."""
-    if os.environ.get("EVENCAD_SKIP_DOTENV") or not path.exists():
+    if os.environ.get("SAYCAD_SKIP_DOTENV") or not path.exists():
         return
     for line in path.read_text(encoding="utf-8").splitlines():
         line = line.strip()
@@ -116,7 +116,7 @@ def create_app(
     store = SessionStore(data_dir)
     holder = {"interpreter": interpreter, "stt": stt, "drive": drive, "reviewer": reviewer}
 
-    app = FastAPI(title="EvenCAD", version="0.2.0")
+    app = FastAPI(title="SayCAD", version="0.2.0")
 
     session_locks: dict[str, asyncio.Lock] = {}
     reviewing: set[tuple[str, str]] = set()  # (session id, revision) with a review in flight
@@ -618,7 +618,7 @@ async function approve(ev) {{
             hints = f"<div class='hints'><b>AI hints</b> – things to look at again. This is not a check.<ul>{items}</ul></div>"
         body = f"<p>Revision {e(spec.revision or '-')}</p>{mark}<p class='files'>{links}</p>{hints}{form}{history}"
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1"><title>{e(spec.title)} – EvenCAD</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>{e(spec.title)} – SayCAD</title>
 <style>
 body{{font:16px/1.5 system-ui,sans-serif;margin:0;padding:20px;max-width:560px;margin:auto;background:#111;color:#eee}}
 img{{width:100%;background:#000;border:1px solid #333}} .btn,button{{display:inline-block;margin:6px 8px 6px 0;padding:12px 18px;

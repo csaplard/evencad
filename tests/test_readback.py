@@ -1,4 +1,4 @@
-"""Read-back text (EVENCAD_SPEC.md, section 6.2). Made by a template, never by the AI."""
+"""Read-back text (SAYCAD_SPEC.md, section 6.2). Made by a template, never by the AI."""
 
 from server.core.readback import MAX_CHARS, readback
 from server.core.spec import Chamfer, Segment, ShaftSpec

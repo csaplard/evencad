@@ -1,4 +1,4 @@
-"""Interpreter: spoken text -> typed operations (EVENCAD_SPEC.md, sections 4a and 5).
+"""Interpreter: spoken text -> typed operations (SAYCAD_SPEC.md, sections 4a and 5).
 
 Every answer is checked against the Pydantic schema. An invalid answer is retried
 once. After that the user gets a question. Unvalidated output is never applied.

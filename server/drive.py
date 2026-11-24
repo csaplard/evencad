@@ -1,4 +1,4 @@
-"""Google Drive upload from the backend (EVENCAD_SPEC.md, section 2).
+"""Google Drive upload from the backend (SAYCAD_SPEC.md, section 2).
 
 Sign-in happens on the server, never in the glasses WebView.
 One-time setup:  python -m tools.drive_auth   (see README, "Google Drive").

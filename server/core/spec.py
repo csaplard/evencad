@@ -1,4 +1,4 @@
-"""ShaftSpec: the data model of one stepped shaft (EVENCAD_SPEC.md, section 5).
+"""ShaftSpec: the data model of one stepped shaft (SAYCAD_SPEC.md, section 5).
 
 Units are millimetres. The axis runs along X. Segments go left to right.
 """
