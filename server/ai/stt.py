@@ -14,11 +14,19 @@ SAMPLE_RATE = 16000
 MAX_SECONDS = 30
 MAX_WAV_BYTES = 44 + SAMPLE_RATE * 2 * MAX_SECONDS + 4096
 
-# Domain words help the recogniser with short technical phrases.
-DOMAIN_PROMPT = (
-    "Shaft dimensions in millimetres. Diameter thirty, forty long. Diameter twenty-five, length sixty. "
-    "Chamfer one by forty-five on the right end. Step, segment, undo, finish, material C45."
-)
+# Domain words help the recogniser with short technical phrases. One text per language.
+DOMAIN_PROMPTS = {
+    "en": (
+        "Shaft dimensions in millimetres. Diameter thirty, forty long. Diameter twenty-five, length sixty. "
+        "Chamfer one by forty-five on the right end. Fillet, undercut, keyway. Step, segment, undo, finish, material C45."
+    ),
+    "hu": (
+        "Tengely méretei milliméterben. Átmérő harminc, hossz negyven. Átmérő huszonöt, hossz hatvan. "
+        "Letörés egyszer negyvenöt fok a jobb végén. Lekerekítés, beszúrás, reteszhorony, illesztés h6, "
+        "érdesség. Szakasz, váll, vissza, kész, anyag C45."
+    ),
+}
+DOMAIN_PROMPT = DOMAIN_PROMPTS["en"]
 
 
 class AudioError(ValueError):
@@ -65,12 +73,15 @@ class FasterWhisperStt:
     """Whisper on the server (CPU is enough for short phrases). The model loads on first use."""
 
     def __init__(self, model: Optional[str] = None, language: Optional[str] = None):
-        self.model_name = model or os.environ.get("STT_MODEL") or "base.en"
-        self.language = language or os.environ.get("STT_LANGUAGE") or "en"
+        self.language = (language or os.environ.get("STT_LANGUAGE") or "en").lower()
+        # The ".en" models know English only. Other languages need a multilingual model.
+        self.model_name = model or os.environ.get("STT_MODEL") or ("base.en" if self.language == "en" else "small")
         self._model = None
 
     def _load(self):
         if self._model is None:
+            if self.language != "en" and self.model_name.endswith(".en"):
+                raise SttError(f"STT_MODEL {self.model_name} is English only. Use small for STT_LANGUAGE={self.language}")
             try:
                 from faster_whisper import WhisperModel
 
@@ -83,7 +94,7 @@ class FasterWhisperStt:
         import numpy as np
 
         audio = np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
-        prompt = DOMAIN_PROMPT if self.language == "en" else None
+        prompt = DOMAIN_PROMPTS.get(self.language)
         try:
             segments, _info = self._load().transcribe(
                 audio,

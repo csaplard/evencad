@@ -59,6 +59,13 @@ Rules:
 - Several clear changes in one sentence give several operations, in spoken order.
 - The text may have this form: first sentence [you asked: your question] answer.
   Then the answer completes the first sentence. Use both parts. If it is still not clear, ask again.
+- The sentence may be in Hungarian. Understand it the same way and use the same operations.
+  Words: átmérő = diameter, hossz / hosszú = length, szakasz = segment, váll / lépcső = step, letörés = chamfer,
+  lekerekítés / rádiusz = fillet, beszúrás / alászúrás = undercut, reteszhorony = keyway, illesztés = fit,
+  érdesség = roughness, anyag = material, bal / jobb vég = left / right end, első, második, harmadik = 1, 2, 3,
+  utolsó = last, töröld = delete, vissza = undo, kész / vége / befejezés = finish.
+  "harmincas" means the number 30. "egész" is the decimal point: "huszonöt egész öt" is 25.5.
+  Always write "ask" in English, with no accented letters: the display font is small.
 - You cannot approve, release or sign a drawing. If asked, return ops [] and ask "Approval is done by a person on the phone page."
 - Do not output geometry, comments or any other text."""
 

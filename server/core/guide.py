@@ -3,9 +3,13 @@
 The display always asks for the next number: first the diameter of the next
 segment, then its length. A bare number answers that question directly.
 No model is called for it. Everything else goes to the interpreter as before.
+
+Numbers and "no" words are understood in English and in Hungarian.
+Hungarian words are compared without accents, because the recogniser may drop them.
 """
 
 import re
+import unicodedata
 from typing import Literal, Optional
 
 from server.core.spec import ShaftSpec, fmt
@@ -24,9 +28,82 @@ _TENS = {
 }
 _DIGITS = {"zero": "0", "oh": "0", **{word: str(n) for word, n in _UNITS.items()}}
 
-_BEFORE = {"diameter": {"diameter", "dia", "phi", "ø"}, "length": {"length"}}
-_AFTER = {"diameter": {"dia", "diameter"}, "length": {"long"}}
-_MM = {"mm", "millimeter", "millimeters", "millimetre", "millimetres"}
+_BEFORE = {"diameter": {"diameter", "dia", "phi", "ø", "atmero"}, "length": {"length", "hossz", "hossza"}}
+_AFTER = {"diameter": {"dia", "diameter", "atmero"}, "length": {"long", "hosszu", "hossz"}}
+_MM = {"mm", "millimeter", "millimeters", "millimetre", "millimetres", "milli", "millis"}
+
+
+def _no_accents(text: str) -> str:
+    """ "átmérő" -> "atmero". The sign "ø" stays."""
+    return "".join(c for c in unicodedata.normalize("NFD", text) if unicodedata.category(c) != "Mn")
+
+
+# Hungarian numbers are written as one word: "százhuszonöt". The table has every spelling of 1 to 999.
+_HU_UNITS = {1: ["egy"], 2: ["ketto", "ket"], 3: ["harom"], 4: ["negy"], 5: ["ot"], 6: ["hat"], 7: ["het"], 8: ["nyolc"], 9: ["kilenc"]}
+_HU_TENS = {30: "harminc", 40: "negyven", 50: "otven", 60: "hatvan", 70: "hetven", 80: "nyolcvan", 90: "kilencven"}
+_HU_DIGITS = {"nulla": "0", **{word: str(n) for n, words in _HU_UNITS.items() for word in words}}
+
+
+def _hungarian_table() -> dict[str, int]:
+    below_100: dict[str, int] = {"tiz": 10, "husz": 20}
+    for n, words in _HU_UNITS.items():
+        for word in words:
+            below_100[word] = n
+            below_100["tizen" + word] = 10 + n
+            below_100["huszon" + word] = 20 + n
+            for tens, name in _HU_TENS.items():
+                below_100[name + word] = tens + n
+    below_100.update({name: tens for tens, name in _HU_TENS.items()})
+
+    table = dict(below_100)
+    for n, prefixes in {1: ["", "egy"], **{k: v for k, v in _HU_UNITS.items() if k > 1}}.items():
+        for prefix in prefixes:
+            table[prefix + "szaz"] = n * 100
+            for word, value in below_100.items():
+                table[prefix + "szaz" + word] = n * 100 + value
+    return table
+
+
+_HU = _hungarian_table()
+
+
+def _hungarian_number(words: list[str]) -> Optional[float]:
+    """Strict Hungarian number: "huszonot", "szaz husz", "huszonot egesz ot", "huszonot es fel", "harmincas"."""
+    words = list(words)
+    half = words[-2:] == ["es", "fel"]
+    if half:
+        words = words[:-2]
+
+    fraction = ""
+    if "egesz" in words:
+        at = words.index("egesz")
+        tail = words[at + 1:]
+        words = words[:at]
+        unit = tail.pop() if tail and tail[-1] in ("tized", "szazad") else None
+        if not tail or half:
+            return None
+        if all(w in _HU_DIGITS for w in tail):
+            fraction = "".join(_HU_DIGITS[w] for w in tail)
+        elif _HU.get("".join(tail), 100) < 100:
+            fraction = str(_HU["".join(tail)])
+        else:
+            return None
+        if (unit == "tized" and len(fraction) != 1) or (unit == "szazad" and len(fraction) > 2):
+            return None
+        if unit == "szazad":
+            fraction = fraction.zfill(2)
+
+    if not words:
+        return None
+    joined = "".join(words)
+    total = 0 if joined == "nulla" else _HU.get(joined)
+    if total is None and not fraction and not half:
+        # "harmincas", "huszonotos", "kettes": the way a size is named.
+        plain = re.sub(r"harmas$", "harom", re.sub(r"kettes$", "ketto", joined))
+        total = _HU.get(re.sub(r"(as|es|os)$", "", plain))
+    if total is None:
+        return None
+    return float(f"{total}.{fraction or '0'}") + (0.5 if half else 0)
 
 
 def _words_to_number(words: list[str]) -> Optional[float]:
@@ -80,7 +157,7 @@ def parse_number(text: str, field: Field) -> Optional[float]:
     Allowed around the number: the name of the asked field and "mm".
     Two numbers, a doubt ("25?"), another field name or any other word give None.
     """
-    s = text.strip().lower()
+    s = _no_accents(text.strip().lower())
     if s.endswith("?"):
         return None  # speech recognition marks a doubt this way
     s = s.rstrip(".!").strip()
@@ -91,7 +168,7 @@ def parse_number(text: str, field: Field) -> Optional[float]:
     s = re.sub(r"(?<=[a-z])-(?=[a-z])", " ", s)  # "twenty-five", but not "-5"
     s = re.sub(r"(?<=\d)(?=mm\b)", " ", s)
     s = re.sub(r"ø\s*(?=\d)", "ø ", s)
-    s = re.sub(r"(?<=\d) point (?=\d)", ".", s)  # "25 point 5"
+    s = re.sub(r"(?<=\d) (point|egesz) (?=\d)", ".", s)  # "25 point 5"
     words = s.split()
 
     if words and words[0] in _BEFORE[field]:
@@ -104,21 +181,23 @@ def parse_number(text: str, field: Field) -> Optional[float]:
     if len(words) == 1 and re.fullmatch(r"\d{1,4}(\.\d{1,3})?", words[0]):
         value = float(words[0])
     else:
-        value = _words_to_number(words)
+        value = _words_to_number(words) or _hungarian_number(words)
     return value if value and value > 0 else None
 
 
 _REJECTIONS = {
     "no", "nope", "no no", "wrong", "that's wrong", "that is wrong", "not that", "not right",
     "undo", "undo that", "go back", "cancel", "cancel that",
+    # Hungarian, without accents
+    "nem", "nem nem", "nem jo", "rossz", "megse", "megsem", "torold", "vissza", "visszavonas", "vond vissza",
 }
 
 
-_UNDO = {"undo", "undo that", "go back"}
+_UNDO = {"undo", "undo that", "go back", "vissza", "visszavonas", "vond vissza"}
 
 
 def _plain(text: str) -> str:
-    s = re.sub(r"[.,!?]", " ", text.lower()).replace("’", "'")
+    s = re.sub(r"[.,!?]", " ", _no_accents(text.lower())).replace("’", "'")
     return " ".join(s.split())
 
 
