@@ -12,7 +12,7 @@ When you say "finish", a STEP model, a DXF and a PDF drawing are ready on your p
 
 **Demo video:** not recorded yet. The plan is in [docs/demo-script.md](docs/demo-script.md).
 
-**Status (Nov 24): the full flow works in the simulator.** The interpreter runs on the real Anthropic API. Not tested yet: real G2 glasses, a real Google Drive account, a human voice. See [Known limits](#known-limits).
+**Status (Nov 24): the full flow works in the simulator.** The interpreter runs on the real Anthropic API and the files go to a real Google Drive. Not tested yet: real G2 glasses, a human voice. See [Known limits](#known-limits).
 
 Built for the "Heads Up: Even Realities Hackathon" (Nov 23–29, 2026).
 Track: **04 · AI Assistants & Work**.
@@ -193,6 +193,7 @@ The app asks only for the `drive.file` scope: it can see only the files it creat
 2. Download the client file to `data/google_client.json` (the `data/` folder is not in git).
 3. Run `.venv/Scripts/python -m tools.drive_auth`. A browser opens. Sign in and allow access.
 4. The tool creates the folder "EvenCAD drawings" and prints a `GOOGLE_DRIVE_FOLDER_ID=...` line. Put it into `.env`.
+   Without this line the upload stays off and nothing tells you.
 5. Restart the backend. Each finished session gets its own sub-folder with `shaft.step`, `shaft.dxf`, `shaft.pdf`.
 
 If Drive fails, the drawing is still finished and the files stay downloadable from the phone page.
@@ -310,7 +311,8 @@ It asks for two permissions only: `network` (one origin, our backend) and `g2-mi
 
 - **Not tested on real G2.** Image refresh speed, text size, the microphone level and the input
   mapping are checked only in the simulator.
-- **Not run against a real Google Drive.** It is tested with a stand-in.
+- **Google Drive** was run with one real account on Nov 24: `finish` put the three files into a new sub-folder, and the approval
+  replaced the DXF and the PDF. `finish` with the upload took 14 s on the first run (slow first imports plus about 6 s of upload).
 - **Speed.** The target is under 4 seconds from the end of speech to the new drawing. Speech-to-text
   takes about 1 second here and the Claude call about 0.5 second. The whole chain with a human voice on real glasses is not measured.
 - **The model answers are not the same on every run.** 117 of 117 test calls were right, but a wrong answer is possible.

@@ -149,3 +149,9 @@ A second agent reviewed the code of the day. It found 14 issues. All are fixed, 
 89. **`claude-sonnet-5-5` gave "API error 400" with the same request.** The reason was not looked into. The adapter is tuned for the small model only.
 90. **The first import of the Anthropic SDK took 7 s on the dev laptop.** The server now imports it (and CadQuery) in the background at start, when `STT_WARMUP=1`.
 91. **Live tests do not read `.env`.** The values must be in the shell (see the README, "Tests").
+
+## Added on Nov 24: first run with a real Google Drive
+
+92. **Drive upload works with a real account.** `finish` made a sub-folder with `shaft.step`, `shaft.dxf`, `shaft.pdf`. The approval replaced the DXF and the PDF in place (same files, new versions).
+93. **`finish` with the upload is slow.** 14 s on the first run in a fresh process. About 6 s of it is the three uploads, one after the other. The rest is the first import of CadQuery, which the warm-up now does at start. Measure it again with the started server. If it is still slow, upload in the background and show `saved to Drive` when it is done.
+94. **The folder id line is easy to miss.** `tools.drive_auth` prints it, but the user must copy it into `.env`. On the dev machine it was missing after the sign-in. The tool could write it into `.env` itself.
