@@ -17,7 +17,7 @@
         }
       ]
     },
-    "recorded": "```json\n{\"ops\": [{\"op\": \"add_segment\", \"diameter\": 30, \"length\": 40, \"at\": null}, {\"op\": \"add_segment\", \"diameter\": 25, \"length\": 60, \"at\": null}], \"ask\": null}\n```"
+    "recorded": "```json\n{\"ops\": [\n  {\"op\": \"add_segment\", \"diameter\": 30, \"length\": 40, \"at\": null},\n  {\"op\": \"add_segment\", \"diameter\": 25, \"length\": 60, \"at\": null}\n], \"ask\": null}\n```"
   },
   {
     "name": "correction_second",
@@ -77,7 +77,7 @@
     "expect": {
       "ask": true
     },
-    "recorded": "```json\n{\"ops\": [], \"ask\": \"Is the diameter 13.3 mm or 15.3 mm?\"}\n```"
+    "recorded": "```json\n{\n  \"ops\": [],\n  \"ask\": \"Did you mean diameter thirteen or thirty?\"\n}\n```"
   },
   {
     "name": "make_it_bigger",
@@ -99,7 +99,7 @@
     "expect": {
       "ask": true
     },
-    "recorded": "```json\n{\"ops\": [], \"ask\": \"Which segment and by how many mm?\"}\n```"
+    "recorded": "```json\n{\"ops\": [], \"ask\": \"Segment number? Diameter or length?\"}\n```"
   },
   {
     "name": "chamfer_right_end",
@@ -157,7 +157,7 @@
     "expect": {
       "ask": true
     },
-    "recorded": "```json\n{\"ops\": [], \"ask\": \"What is the length of the new segment?\"}\n```"
+    "recorded": "```json\n{\"ops\": [], \"ask\": \"What is the length?\"}\n```"
   },
   {
     "name": "relative_with_amount",
@@ -355,7 +355,7 @@
     "expect": {
       "ask": true
     },
-    "recorded": "```json\n{\n  \"ops\": [],\n  \"ask\": \"What is the keyway length in millimetres?\"\n}\n```"
+    "recorded": "```json\n{\"ops\": [], \"ask\": \"What is the keyway length?\"}\n```"
   },
   {
     "name": "keyway_width_is_ignored",
@@ -445,7 +445,7 @@
     "expect": {
       "ask": true
     },
-    "recorded": "```json\n{\"ops\": [], \"ask\": \"Which segment should have this roughness: segment 1, segment 2, or both?\"}\n```"
+    "recorded": "```json\n{\"ops\": [], \"ask\": \"Which segment: 1, 2, or all?\"}\n```"
   },
   {
     "name": "answer_to_a_question",
@@ -494,5 +494,443 @@
       ]
     },
     "recorded": "```json\n{\"ops\": [{\"op\": \"add_segment\", \"diameter\": 15, \"length\": 30, \"at\": null}], \"ask\": null}\n```"
+  },
+  {
+    "name": "fillet_step",
+    "before": [
+      [
+        30,
+        40
+      ],
+      [
+        25,
+        60
+      ],
+      [
+        20,
+        30
+      ]
+    ],
+    "utterance": "fillet radius two at the first step",
+    "expect": {
+      "ops": [
+        {
+          "op": "set_fillet",
+          "step": 1,
+          "radius": 2
+        }
+      ]
+    },
+    "recorded": "```json\n{\"ops\": [{\"op\": \"set_fillet\", \"step\": 1, \"radius\": 2}], \"ask\": null}\n```"
+  },
+  {
+    "name": "fillet_between",
+    "before": [
+      [
+        30,
+        40
+      ],
+      [
+        25,
+        60
+      ],
+      [
+        20,
+        30
+      ]
+    ],
+    "utterance": "round the corner between the second and the third with radius one point five",
+    "expect": {
+      "ops": [
+        {
+          "op": "set_fillet",
+          "step": 2,
+          "radius": 1.5
+        }
+      ]
+    },
+    "recorded": "```json\n{\"ops\": [{\"op\": \"set_fillet\", \"step\": 2, \"radius\": 1.5}], \"ask\": null}\n```"
+  },
+  {
+    "name": "fillet_no_radius",
+    "before": [
+      [
+        30,
+        40
+      ],
+      [
+        25,
+        60
+      ],
+      [
+        20,
+        30
+      ]
+    ],
+    "utterance": "add a fillet at step one",
+    "expect": {
+      "ask": true
+    },
+    "recorded": "```json\n{\"ops\": [], \"ask\": \"Fillet radius for step 1 (mm)?\"}\n```"
+  },
+  {
+    "name": "fillet_one_step",
+    "before": [
+      [
+        30,
+        40
+      ],
+      [
+        25,
+        60
+      ]
+    ],
+    "utterance": "fillet radius one",
+    "expect": {
+      "ops": [
+        {
+          "op": "set_fillet",
+          "step": 1,
+          "radius": 1
+        }
+      ]
+    },
+    "recorded": "```json\n{\"ops\": [{\"op\": \"set_fillet\", \"step\": 1, \"radius\": 1}], \"ask\": null}\n```"
+  },
+  {
+    "name": "undercut",
+    "before": [
+      [
+        30,
+        40
+      ],
+      [
+        25,
+        60
+      ],
+      [
+        20,
+        30
+      ]
+    ],
+    "utterance": "undercut at step two, three wide and half a millimetre deep",
+    "expect": {
+      "ops": [
+        {
+          "op": "set_undercut",
+          "step": 2,
+          "width": 3,
+          "depth": 0.5
+        }
+      ]
+    },
+    "recorded": "```json\n{\"ops\": [{\"op\": \"set_undercut\", \"step\": 2, \"width\": 3, \"depth\": 0.5}], \"ask\": null}\n```"
+  },
+  {
+    "name": "undercut_no_depth",
+    "before": [
+      [
+        30,
+        40
+      ],
+      [
+        25,
+        60
+      ],
+      [
+        20,
+        30
+      ]
+    ],
+    "utterance": "relief groove at the first step, two wide",
+    "expect": {
+      "ask": true
+    },
+    "recorded": "```json\n{\"ops\": [], \"ask\": \"What is the depth of the relief groove?\"}\n```"
+  },
+  {
+    "name": "hu_two_segments",
+    "before": [],
+    "utterance": "átmérő harminc, hossz negyven, aztán átmérő huszonöt, hossz hatvan",
+    "expect": {
+      "ops": [
+        {
+          "op": "add_segment",
+          "diameter": 30,
+          "length": 40
+        },
+        {
+          "op": "add_segment",
+          "diameter": 25,
+          "length": 60
+        }
+      ]
+    },
+    "recorded": "```json\n{\"ops\": [\n  {\"op\": \"add_segment\", \"diameter\": 30, \"length\": 40, \"at\": null},\n  {\"op\": \"add_segment\", \"diameter\": 25, \"length\": 60, \"at\": null}\n], \"ask\": null}\n```"
+  },
+  {
+    "name": "hu_correction",
+    "before": [
+      [
+        30,
+        40
+      ],
+      [
+        25,
+        60
+      ],
+      [
+        20,
+        30
+      ]
+    ],
+    "utterance": "a második legyen huszonnyolcas",
+    "expect": {
+      "ops": [
+        {
+          "op": "edit_segment",
+          "index": 2,
+          "diameter": 28
+        }
+      ]
+    },
+    "recorded": "```json\n{\"ops\": [{\"op\": \"edit_segment\", \"index\": 2, \"diameter\": 28, \"length\": null}], \"ask\": null}\n```"
+  },
+  {
+    "name": "hu_chamfer",
+    "before": [
+      [
+        30,
+        40
+      ],
+      [
+        25,
+        60
+      ],
+      [
+        20,
+        30
+      ]
+    ],
+    "utterance": "letörés egyszer negyvenöt fok a jobb végén",
+    "expect": {
+      "ops": [
+        {
+          "op": "set_chamfer",
+          "where": "right_end",
+          "size": 1,
+          "angle": 45
+        }
+      ]
+    },
+    "recorded": "```json\n{\"ops\": [{\"op\": \"set_chamfer\", \"where\": \"right_end\", \"size\": 1, \"angle\": 45}], \"ask\": null}\n```"
+  },
+  {
+    "name": "hu_keyway",
+    "before": [
+      [
+        30,
+        40
+      ],
+      [
+        25,
+        60
+      ],
+      [
+        20,
+        30
+      ]
+    ],
+    "utterance": "reteszhorony a másodikra, húsz hosszú",
+    "expect": {
+      "ops": [
+        {
+          "op": "set_keyway",
+          "index": 2,
+          "length": 20
+        }
+      ]
+    },
+    "recorded": "```json\n{\"ops\": [{\"op\": \"set_keyway\", \"index\": 2, \"length\": 20}], \"ask\": null}\n```"
+  },
+  {
+    "name": "hu_fillet",
+    "before": [
+      [
+        30,
+        40
+      ],
+      [
+        25,
+        60
+      ],
+      [
+        20,
+        30
+      ]
+    ],
+    "utterance": "lekerekítés az első vállnál, rádiusz kettő",
+    "expect": {
+      "ops": [
+        {
+          "op": "set_fillet",
+          "step": 1,
+          "radius": 2
+        }
+      ]
+    },
+    "recorded": "```json\n{\"ops\": [{\"op\": \"set_fillet\", \"step\": 1, \"radius\": 2}], \"ask\": null}\n```"
+  },
+  {
+    "name": "hu_undercut",
+    "before": [
+      [
+        30,
+        40
+      ],
+      [
+        25,
+        60
+      ],
+      [
+        20,
+        30
+      ]
+    ],
+    "utterance": "beszúrás a második vállnál, három széles, fél milliméter mély",
+    "expect": {
+      "ops": [
+        {
+          "op": "set_undercut",
+          "step": 2,
+          "width": 3,
+          "depth": 0.5
+        }
+      ]
+    },
+    "recorded": "```json\n{\"ops\": [{\"op\": \"set_undercut\", \"step\": 2, \"width\": 3, \"depth\": 0.5}], \"ask\": null}\n```"
+  },
+  {
+    "name": "hu_fit_roughness",
+    "before": [
+      [
+        30,
+        40
+      ],
+      [
+        25,
+        60
+      ],
+      [
+        20,
+        30
+      ]
+    ],
+    "utterance": "a második illesztése h hat, érdesség egy egész hat",
+    "expect": {
+      "ops": [
+        {
+          "op": "set_fit",
+          "index": 2,
+          "fit": "h6"
+        },
+        {
+          "op": "set_roughness",
+          "index": 2,
+          "ra": 1.6
+        }
+      ]
+    },
+    "recorded": "```json\n{\"ops\": [{\"op\": \"set_fit\", \"index\": 2, \"fit\": \"h6\"}, {\"op\": \"set_roughness\", \"index\": 2, \"ra\": 1.6}], \"ask\": null}\n```"
+  },
+  {
+    "name": "hu_material",
+    "before": [
+      [
+        30,
+        40
+      ],
+      [
+        25,
+        60
+      ],
+      [
+        20,
+        30
+      ]
+    ],
+    "utterance": "anyag C negyvenöt",
+    "expect": {
+      "ops": [
+        {
+          "op": "set_material",
+          "text": "C45"
+        }
+      ]
+    },
+    "recorded": "```json\n{\"ops\": [{\"op\": \"set_material\", \"text\": \"C45\"}], \"ask\": null}\n```"
+  },
+  {
+    "name": "hu_missing_length",
+    "before": [
+      [
+        30,
+        40
+      ],
+      [
+        25,
+        60
+      ],
+      [
+        20,
+        30
+      ]
+    ],
+    "utterance": "még egy szakasz, átmérő negyven",
+    "expect": {
+      "ask": true
+    },
+    "recorded": "```json\n{\"ops\": [], \"ask\": \"What is the length of the new segment?\"}\n```"
+  },
+  {
+    "name": "hu_finish",
+    "before": [
+      [
+        30,
+        40
+      ],
+      [
+        25,
+        60
+      ],
+      [
+        20,
+        30
+      ]
+    ],
+    "utterance": "kész, befejezés",
+    "expect": {
+      "ops": [
+        {
+          "op": "finish"
+        }
+      ]
+    },
+    "recorded": "```json\n{\"ops\": [{\"op\": \"finish\"}], \"ask\": null}\n```"
+  },
+  {
+    "name": "hu_decimal",
+    "before": [],
+    "utterance": "átmérő harmincöt egész öt, hossz tizenkettő",
+    "expect": {
+      "ops": [
+        {
+          "op": "add_segment",
+          "diameter": 35.5,
+          "length": 12
+        }
+      ]
+    },
+    "recorded": "```json\n{\"ops\": [{\"op\": \"add_segment\", \"diameter\": 35.5, \"length\": 12, \"at\": null}], \"ask\": null}\n```"
   }
 ]

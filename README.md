@@ -64,6 +64,16 @@ speech → Whisper (on our server) → text → Claude (interpreter) → typed o
   ![Keyway in 3D](docs/img/keyway-3d.png)
 - Fit and roughness: "the second one has an h six fit", "roughness one point six on the first one".
   They are notes: `Ø25 h6` in the diameter dimension and an `Ra 1.6` mark on the sheet. The fit must be a real ISO shaft fit.
+  The sheet also gives the limits of the fit as a note, for example `Ø25 k6: +0.015/+0.002 (ISO 286)`.
+  The numbers come from a table in the code (letters d to s, grades IT5 to IT11, sizes up to 500 mm). A fit outside the table has no numbers.
+- Fillet and undercut at a shoulder: "fillet radius two at the first step", "undercut at step two, three wide and half a millimetre deep".
+  The fillet is a real arc in the DXF and a round face in the STEP model. The undercut is a plain rectangular groove, not a DIN 509 shape.
+  Both are in the 2D and 3D views, in the read-back (`R2 step 1`, `U3×0.5 step 2`), as notes on the sheet, and in the mass.
+
+  ![Fillet and undercut](docs/img/fillet-undercut.png)
+- Hungarian dictation: set `STT_LANGUAGE=hu` (the Whisper model is then `small`). Bare numbers ("huszonöt", "száz húsz",
+  "huszonöt egész öt", "harmincas"), "nem" and "vissza" work without the model. Full sentences go to the model, which knows the
+  Hungarian workshop words. The display texts and the questions of the model stay English.
 - Mass: say the material ("material C45"). The read-back and the title block then show the mass, for example `424 g`.
   The volume comes from the spec by formula. The density comes from a small table by the material name (steel, stainless steel,
   cast iron, aluminium, brass, bronze, copper, titanium, POM, PA6). An unknown material shows no mass.
@@ -74,7 +84,7 @@ speech → Whisper (on our server) → text → Claude (interpreter) → typed o
 - Tap also accepts a warning. Double tap opens the system exit dialog.
 - Swipe turns the drawing: 2D side view with dimensions, then a 3D line view at 30°, 60°, 90° (end view), 120°, 150°.
   The glasses show images only, so the 3D view turns in steps, one image per step.
-- Speech to text runs on the backend with faster-whisper (`base.en`, about 1 s per sentence on a laptop CPU).
+- Speech to text runs on the backend with faster-whisper (`base.en`, about 1 s per sentence on a laptop CPU; `small` for Hungarian).
 - `finish` makes `data/out/<session id>/shaft.step`, `shaft.dxf`, `shaft.pdf`.
 - Phone page `/s/<session id>?k=<token>`: the 2D side view, downloads, and the human "Approve for review" step.
 - Every session has a secret token. The server gives it once, when the session is made. Every call needs it, so the session id alone opens nothing.
@@ -263,7 +273,9 @@ It asks for two permissions only: `network` (one origin, our backend) and `g2-mi
 - **Speed.** The target is under 4 seconds from the end of speech to the new drawing. Speech-to-text
   takes about 1 second here. The Claude call is not measured with the API yet.
 - **Speech-to-text** was checked with a computer voice only. Human voices and workshop noise are open.
-- **One part family:** stepped shafts with chamfers. No threads, keyways, tolerances or fits.
+- **One part family:** stepped shafts with chamfers, shoulder fillets, plain undercuts and keyways. No threads, no cross holes,
+  no geometric tolerances. Fits and roughness are notes.
+- **Hungarian speech** was not tried with a real voice or with the `small` Whisper model. Only the text path is tested.
 - **Drawing polish.** Diameter dimensions on the sheet cross the centre line.
 - **One Google account, no user accounts.** A session is protected by its token only. The token is in the phone page link, so the link is the key: do not share it.
 - English only.

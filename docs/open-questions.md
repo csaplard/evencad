@@ -127,3 +127,16 @@ A second agent reviewed the code of the day. It found 14 issues. All are fixed, 
 73. **Fixed: smaller items.** A non-ASCII token gives 401, not 500. Session files are written in one step. One call at a time per session. Finish drops a half-entered diameter. "25?" is not read as a number.
 74. **Still open from the review.** The token is in `?k=` links, so it is in access logs (item 60). The session lock is in memory, so it works for one server process only.
 75. **Auto-listen after a question is new.** Check on real G2 that it feels right. A model that keeps asking would keep the microphone cycle going until the user is silent for 20 s or taps.
+
+## Added on Nov 24: fit limits, fillet, undercut, Hungarian
+
+76. **Check the fit table.** `server/core/fits.py` has the ISO 286 values (IT5 to IT11, letters d e f g h js k m n p r s, up to 500 mm). They were typed in from memory. 33 well known values are in `tests/test_fits.py`. An engineer must compare the whole table with the standard before anyone relies on a drawing.
+77. **Fits outside the table** (for example j6, or grades below IT5) stay a text note with no numbers. This is on purpose: nothing is guessed.
+78. **The undercut is a plain rectangular groove.** It is not a DIN 509 form E or F undercut. The sheet note says "plain groove". Decide if the standard shapes are needed.
+79. **Fillet only at a shoulder.** A rounded outer edge of a shaft end is not built. The model is told to ask for a step.
+80. **A fillet or undercut has no dimension of its own on the sheet.** The size is in a note at the top left ("Fillet R2 at step 1"). A leader with the radius would look better.
+81. **Deleting or inserting a segment drops the fillet or undercut at that joint.** The shoulder they were made for is gone. The user sees this in the read-back. Chamfers at a step are not dropped the same way (older behaviour).
+82. **Hungarian speech was not tried with a voice.** Only text was tested: the number parser (about 70 cases) and 11 recorded model answers. `STT_LANGUAGE=hu` needs the `small` Whisper model (about 460 MB download, slower than `base.en`). Its speed and accuracy on this laptop are not measured.
+83. **Hungarian: the display stays English.** "Next: segment 2 diameter?" and the model questions are English. The glasses font was not checked for ő and ű, so the model is told to ask in English without accents.
+84. **Hungarian number words that sound alike:** "hat" (6) and "hét" (7), "négy" (4) and "negyven" (40), "öt" (5) and "ötven" (50). The read-back shows the value at once and "nem" takes it back. Check with real speech how often this happens.
+85. **Docker image and Hungarian.** The Dockerfile downloads the model named by the build argument `STT_MODEL` (default `base.en`). For Hungarian build with `--build-arg STT_MODEL=small`.

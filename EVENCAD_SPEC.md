@@ -146,6 +146,8 @@ Derived values (never stored by hand): total length, maximum diameter, step list
 | `edit_segment` | index (number, or "last"), diameter?, length? |
 | `delete_segment` | index |
 | `set_chamfer` | where ("left_end", "right_end", or step number), size, angle (default 45) |
+| `set_fillet` | step number, radius (0 removes it) |
+| `set_undercut` | step number, width, depth (width 0 removes it) |
 | `set_material` | text |
 | `set_title` | text |
 | `undo` | – |
@@ -307,4 +309,7 @@ Details and sources are in `docs/sdk-notes.md`. These points change earlier sect
 - **Claude call (4, suggested stack).** Temperature cannot be set on current models, so it is not sent. The answer is plain JSON checked by Pydantic, not tool use, so the CLI and API adapters stay identical. Thinking is off and effort is low, for speed.
 - **3D view on the glasses (2, out of scope).** Now in scope, in a small form: a stepped 3D line view (five fixed angles) that the user turns with a swipe. There is still no live 3D engine on the glasses.
 - **Guided measuring (new).** The display asks for the next number (diameter, then length). A bare number is read by the server with strict rules, without the model. The result is the same `add_segment` operation, with the same validation, undo and audit log. Full sentences still go to the interpreter.
+- **Fit limits (new).** The sheet has a note with the limits of each fit, for example `Ø25 k6: +0.015/+0.002 (ISO 286)`. The AI gives only the fit text. The numbers come from a table in `server/core/fits.py`. The table must be checked by an engineer.
+- **Fillet and undercut (new).** New operations `set_fillet` (step, radius) and `set_undercut` (step, width, depth). Both sit at the root of a shoulder, on the smaller segment. One step has one of them. The undercut is a plain rectangular groove. DIN 509 shapes are not built.
+- **Hungarian (2, stretch, now built in part).** Dictation works in Hungarian: numbers and "no" words in plain code, sentences through the model. The display stays English, because the glasses font was not checked for ő and ű.
 - **Keyway (stretch, now built).** New operation `set_keyway` with a segment and a length only. Width and depth come from a table in the code (DIN 6885-1, form A), by the segment diameter. Validation checks that the diameter is in the table and that the keyway fits the segment. The table must be checked by an engineer.
