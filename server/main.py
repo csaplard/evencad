@@ -80,14 +80,28 @@ def _fingerprint(spec) -> str:
 
 
 def _load_env_file(path: Path = Path(".env")) -> None:
-    """Tiny .env reader: KEY=value lines. Real environment variables win."""
+    """Tiny .env reader: KEY=value lines.
+
+    A value in `.env` wins over a variable of the same name in the shell or in Windows.
+    The file is the one place for the settings of this server. An old key that is set
+    somewhere in the system must not be used by mistake. An empty value in the file changes nothing.
+    """
     if os.environ.get("SAYCAD_SKIP_DOTENV") or not path.exists():
         return
-    for line in path.read_text(encoding="utf-8").splitlines():
+    replaced = []
+    for line in path.read_text(encoding="utf-8-sig").splitlines():
         line = line.strip()
         if line and not line.startswith("#") and "=" in line:
-            key, value = line.split("=", 1)
-            os.environ.setdefault(key.strip(), value.strip())
+            key, value = (part.strip() for part in line.split("=", 1))
+            if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+                value = value[1:-1]  # KEY="value"
+            if not value:
+                continue
+            if os.environ.get(key) not in (None, "", value):
+                replaced.append(key)
+            os.environ[key] = value
+    if replaced:  # names only, never the values
+        log.warning(".env replaced these variables of the system: %s", ", ".join(sorted(replaced)))
 
 
 def _cors_origins() -> list[str]:

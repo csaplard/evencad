@@ -170,3 +170,8 @@ A second agent reviewed the code of the day. It found 14 issues. All are fixed, 
 101. **The name was not checked against trademarks.** One quick web search found no product called SayCAD. That is not a legal check.
 102. **The Google Drive folder of the dev account is still called "EvenCAD drawings".** It works, because the server uses the folder id. New installs get "SayCAD drawings". Rename the old folder by hand if it will be in the video.
 103. **The variable `EVENCAD_SKIP_DOTENV` is now `SAYCAD_SKIP_DOTENV`.** Only tests and scripts use it.
+
+## Added on Nov 24: first try with a human voice
+
+104. **An old `ANTHROPIC_API_KEY` in the Windows user variables beat the key in `.env`.** The first spoken test ended with "Anthropic API key is missing or not valid". Now a value in `.env` wins, and the log names what was replaced. The old Windows variable is still there; Dániel can delete it.
+105. **"Thirty." was understood from a human voice** and taken without the model. The next spoken entry went to the model and hit the key error, so what was heard is not known: a failed model call does not log the heard text.

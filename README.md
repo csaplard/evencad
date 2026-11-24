@@ -227,6 +227,9 @@ Not tested yet. The planned steps, from the Even Hub docs:
 
 See [.env.example](.env.example). Keys live only on the server, in `.env`. `.env` is never committed.
 
+A value in `.env` wins over a variable of the same name in the shell or in Windows. An empty value in `.env` changes nothing.
+The server log names the variables that `.env` replaced (names only).
+
 ## Input mapping
 
 Current mapping (simulator). It is checked again on real G2.
