@@ -7,6 +7,7 @@ Coordinates are millimetres. X runs along the axis from 0. Y is up. The axis is 
 from dataclasses import dataclass, field
 from typing import Literal, Optional
 
+from server.core.fits import limits_text
 from server.core.keyway import keyway_size
 from server.core.spec import ShaftSpec, fmt
 from server.core.validation import chamfer_depth
@@ -158,6 +159,10 @@ def draw_shaft(spec: ShaftSpec, style: Optional[Style] = None) -> Drawing:
                 if slot.segment == i and slot.x2 < x + s.length:
                     mid = (slot.x2 + x + s.length) / 2  # beside the keyway, not across it
             label = "Ø" + fmt(s.diameter) + (f" {s.fit}" if s.fit else "")
+            # The sheet also gives the limits of the fit, from the table. The glasses have no room for them.
+            numbers = limits_text(s.diameter, s.fit) if style.name == "sheet" else ""
+            if numbers:
+                label += f" ({numbers})"
             d.dims.append(Dim("diameter", (mid, -r), (mid, r), s.diameter, label, i))
         if s.roughness:
             d.marks.append(Mark(x + s.length / 4, r, f"Ra {fmt(s.roughness)}", i))

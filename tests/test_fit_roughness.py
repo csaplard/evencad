@@ -61,7 +61,7 @@ def test_texts():
 def test_drawing():
     spec = do(shaft(), {"op": "set_fit", "index": 2, "fit": "h6"}, {"op": "set_roughness", "index": 2, "ra": 1.6})
     d = draw_shaft(spec)
-    assert [x.text for x in d.dims if x.kind == "diameter"] == ["Ø30", "Ø25 h6"]
+    assert [x.text for x in d.dims if x.kind == "diameter"] == ["Ø30", "Ø25 h6 (0/-0.013)"]
     (mark,) = d.marks
     assert mark.text == "Ra 1.6" and mark.segment == 2 and mark.y == 12.5 and 40 < mark.x < 100
     assert render_glasses(spec).tobytes() != render_glasses(shaft()).tobytes()
@@ -69,4 +69,4 @@ def test_drawing():
     msp = build_dxf(spec).modelspace()
     assert any(t.dxf.text == "Ra 1.6" for t in msp.query("TEXT"))
     dim_texts = [dim.dxf.text for dim in msp.query("DIMENSION")]
-    assert "Ø<> h6" in dim_texts and "Ø<>" in dim_texts
+    assert "Ø<> h6 (0/-0.013)" in dim_texts and "Ø<>" in dim_texts
