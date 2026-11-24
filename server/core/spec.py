@@ -32,6 +32,15 @@ class Keyway(BaseModel):
     length: float  # along the axis, mm, round ends included
 
 
+class Undercut(BaseModel):
+    """A plain relief groove at the root of a shoulder: a rectangle, `width` along the axis."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    width: float
+    depth: float  # radial, below the surface of its segment
+
+
 class Segment(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -40,8 +49,20 @@ class Segment(BaseModel):
     chamfer_left: Optional[Chamfer] = None
     chamfer_right: Optional[Chamfer] = None
     keyway: Optional[Keyway] = None
+    # Root features. They sit at an end of this segment where the neighbour is larger.
+    # One end has a fillet or an undercut, never both.
+    fillet_left: Optional[float] = None  # radius, mm
+    fillet_right: Optional[float] = None
+    undercut_left: Optional[Undercut] = None
+    undercut_right: Optional[Undercut] = None
     fit: Optional[str] = None  # ISO 286 shaft fit as text, for example "h6". A note only.
     roughness: Optional[float] = None  # Ra in micrometres. A note only.
+
+
+def end_size(seg: Segment, side: str) -> float:
+    """Length along the axis that the end feature of one side takes ("left" or "right")."""
+    chamfer, fillet, undercut = (getattr(seg, f"{kind}_{side}") for kind in ("chamfer", "fillet", "undercut"))
+    return max(chamfer.size if chamfer else 0, fillet or 0, undercut.width if undercut else 0)
 
 
 class ShaftSpec(BaseModel):

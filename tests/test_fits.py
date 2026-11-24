@@ -43,13 +43,14 @@ def spec():
     ])
 
 
-def test_the_sheet_shows_the_limits_and_the_glasses_do_not():
-    sheet = {d.segment: d.text for d in draw_shaft(spec(), Style(name="sheet")).dims if d.kind == "diameter"}
-    assert sheet == {1: "Ø30", 2: "Ø25 k6 (+0.015/+0.002)", 3: "Ø20 j6"}
-    glasses = {d.segment: d.text for d in draw_shaft(spec(), Style(name="glasses")).dims if d.kind == "diameter"}
-    assert glasses[2] == "Ø25 k6"
+def test_the_limits_are_a_note_and_the_dimension_stays_short():
+    d = draw_shaft(spec(), Style(name="sheet"))
+    assert {x.segment: x.text for x in d.dims if x.kind == "diameter"} == {1: "Ø30", 2: "Ø25 k6", 3: "Ø20 j6"}
+    assert [(n.text, n.segment) for n in d.notes] == [("Ø25 k6: +0.015/+0.002 (ISO 286)", 2)]  # j6 is not in the table
 
 
-def test_the_dxf_dimension_keeps_the_measured_value():
-    dims = {round(d.get_measurement()): d.dxf.text for d in build_dxf(spec()).modelspace().query("DIMENSION")}
-    assert dims[25] == "Ø<> k6 (+0.015/+0.002)"
+def test_the_dxf_has_the_note():
+    msp = build_dxf(spec()).modelspace()
+    assert "Ø25 k6: +0.015/+0.002 (ISO 286)" in [t.dxf.text for t in msp.query("TEXT")]
+    dims = {round(d.get_measurement()): d.dxf.text for d in msp.query("DIMENSION")}
+    assert dims[25] == "Ø<> k6"

@@ -62,18 +62,27 @@ def build_dxf(spec: ShaftSpec) -> DxfDoc:
         return (ox + p[0] * scale, oy + p[1] * scale)
 
     for ln in drawing.lines:
-        msp.add_line(pt(ln.p1), pt(ln.p2), dxfattribs={"layer": ln.layer})
+        if not ln.curve:
+            msp.add_line(pt(ln.p1), pt(ln.p2), dxfattribs={"layer": ln.layer})
+    # Fillets: real arcs, in the upper half and mirrored in the lower half.
+    for arc in drawing.arcs:
+        msp.add_arc(pt((arc.cx, arc.cy)), arc.radius * scale, arc.start, arc.end, dxfattribs={"layer": "OUTLINE"})
+        msp.add_arc(pt((arc.cx, -arc.cy)), arc.radius * scale, 360 - arc.end, 360 - arc.start, dxfattribs={"layer": "OUTLINE"})
+
+    sheet_notes: list[str] = []
 
     # Keyways: seen from above, an oblong with round ends on the axis. Sizes go into a note.
-    for n, slot in enumerate(drawing.slots):
+    for slot in drawing.slots:
         half = slot.width / 2
         left, right = (slot.x1 + half, 0), (slot.x2 - half, 0)
         for sign in (1, -1):
             msp.add_line(pt((left[0], sign * half)), pt((right[0], sign * half)), dxfattribs={"layer": "OUTLINE"})
         msp.add_arc(pt(left), half * scale, 90, 270, dxfattribs={"layer": "OUTLINE"})
         msp.add_arc(pt(right), half * scale, 270, 90, dxfattribs={"layer": "OUTLINE"})
-        note = (f"Keyway on segment {slot.segment}: {fmt(slot.width)} × {fmt(slot.x2 - slot.x1)}, "
-                f"depth {fmt(slot.depth)}, centred ({STANDARD})")
+        sheet_notes.append(f"Keyway on segment {slot.segment}: {fmt(slot.width)} × {fmt(slot.x2 - slot.x1)}, "
+                           f"depth {fmt(slot.depth)}, centred ({STANDARD})")
+    sheet_notes += [note.text for note in drawing.notes]
+    for n, note in enumerate(sheet_notes):
         msp.add_text(note, height=3.0, dxfattribs={"layer": "TEXT", "style": TEXT_STYLE}).set_placement(
             (MARGIN + 4, SHEET_H - MARGIN - 8 - 5 * n), align=TextEntityAlignment.LEFT)
 

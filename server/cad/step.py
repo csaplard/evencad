@@ -3,11 +3,12 @@
 `StepExporter` is a small interface, so the CAD library can be swapped.
 """
 
+import math
 from pathlib import Path
 from typing import Protocol
 
 from server.core.spec import ShaftSpec
-from server.draw.model import profile, slots
+from server.draw.model import arcs, outline, slots
 
 
 class StepExporter(Protocol):
@@ -18,10 +19,21 @@ def build_solid(spec: ShaftSpec):
     """The shaft as a CadQuery solid: the revolved profile, minus the keyways."""
     import cadquery as cq  # heavy import, only when needed
 
-    pts = profile(spec)
-    if len(pts) < 4:
+    nodes = outline(spec)
+    if len(nodes) < 4:
         raise ValueError("The spec has no segments")
-    solid = cq.Workplane("XY").polyline(pts).close().revolve(360, (0, 0, 0), (1, 0, 0))
+    rounds = arcs(spec)
+    wire = cq.Workplane("XY").moveTo(nodes[0].x, nodes[0].r)
+    for at in range(1, len(nodes)):
+        before, node = nodes[at - 1], nodes[at]
+        if node.arc is None or node.arc != before.arc:
+            wire = wire.lineTo(node.x, node.r)
+        elif at + 1 == len(nodes) or nodes[at + 1].arc != node.arc:
+            # The last point of a fillet: one true arc from its first point, through its middle.
+            arc = rounds[node.arc]
+            mid = math.radians((arc.start + arc.end) / 2)
+            wire = wire.threePointArc((arc.cx + arc.radius * math.cos(mid), arc.cy + arc.radius * math.sin(mid)), (node.x, node.r))
+    solid = wire.close().revolve(360, (0, 0, 0), (1, 0, 0))
     for slot in slots(spec):
         # An oblong in the XY plane, pulled up along Z, then turned so that it stands on top (+Y).
         height = slot.depth + 1

@@ -15,7 +15,7 @@ from PIL import Image, ImageDraw
 
 from server.core.spec import ShaftSpec
 from server.draw.glasses import BAND, FONT_PX, LINE, _font, segment_span
-from server.draw.model import Slot, profile, slots
+from server.draw.model import Slot, outline, slots
 
 PITCH_DEG = 20  # the view looks down a little, so circles show as ellipses
 YAW_STEPS = (30, 60, 90, 120, 150)  # 90 = end view
@@ -89,11 +89,12 @@ def render_glasses_3d(
         g.text(((w - g.textlength(text, font=font)) / 2, (h - FONT_PX) / 2), text, fill=1, font=font)
         return img.convert("L")
 
-    pts = profile(spec)
+    nodes = outline(spec)
     project = _projector(yaw_deg, pitch_deg, spec.total_length)
     # Far to near: the end of the shaft that points away from the viewer comes first.
     if math.sin(math.radians(yaw_deg)) > 0:
-        pts = pts[::-1]
+        nodes = nodes[::-1]
+    pts = [(n.x, n.r) for n in nodes]
     rings = [_circle(project, x, r) for x, r in pts]
     span = segment_span(spec, active_segment) if len(spec.segments) > 1 else None
 
@@ -116,7 +117,7 @@ def render_glasses_3d(
     def px(p):
         return (round(w / 2 + label_w / 4 + (p[0] - cx) * scale), round(h / 2 + (p[1] - cy) * scale))
 
-    def outline(shape, fill, width=LINE):
+    def draw_shape(shape, fill, width=LINE):
         if len(shape) >= 3:
             g.polygon(shape, fill=fill)
         if len(shape) >= 2:
@@ -124,9 +125,9 @@ def render_glasses_3d(
 
     for i, (far, near) in enumerate(zip(rings, rings[1:])):
         width = LINE + 2 if is_active(pts[i], pts[i + 1]) else LINE
-        outline([px(p) for p in _hull(far + near)], fill=0, width=width)  # the band covers what is behind it
-        if len(near) > 1:
-            outline([px(p) for p in near], fill=None, width=width)  # its near edge is a visible circle
+        draw_shape([px(p) for p in _hull(far + near)], fill=0, width=width)  # the band covers what is behind it
+        if len(near) > 1 and not nodes[i + 1].smooth:
+            draw_shape([px(p) for p in near], fill=None, width=width)  # its near edge is a visible circle
         lo, hi = sorted((pts[i][0], pts[i + 1][0]))
         for slot in key_slots:
             if lo - 1e-9 <= slot.x1 and slot.x2 <= hi + 1e-9:

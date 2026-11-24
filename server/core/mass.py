@@ -66,6 +66,15 @@ def volume_mm3(spec: ShaftSpec) -> float:
             if c:
                 r1 = r - chamfer_depth(c)
                 total -= math.pi * c.size * (r**2 - (r**2 + r * r1 + r1**2) / 3)  # ring minus cone frustum
+        for fillet in (s.fillet_left, s.fillet_right):
+            if fillet:
+                # Pappus: the corner piece under the arc, turned around the axis.
+                area = fillet**2 * (1 - math.pi / 4)
+                centre = r + fillet * (10 - 3 * math.pi) / (3 * (4 - math.pi))
+                total += 2 * math.pi * centre * area
+        for cut in (s.undercut_left, s.undercut_right):
+            if cut:
+                total -= math.pi * (r**2 - (r - cut.depth) ** 2) * cut.width
         size = keyway_size(s.diameter) if s.keyway else None
         if size and s.keyway.length > size.width:
             total -= _keyway_volume(r, size.width, size.depth, s.keyway.length)

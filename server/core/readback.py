@@ -37,6 +37,15 @@ def readback(spec: ShaftSpec) -> str:
         if s.chamfer_right:
             chamfers.append(_chamfer(s.chamfer_right, "right" if i == n else f"step {i}"))
 
+    # Fillet and undercut: "R2 step 1", "U3×0.5 step 2" (width × depth).
+    for i, s in enumerate(segs, start=1):
+        for side, step in (("left", i - 1), ("right", i)):
+            fillet, cut = getattr(s, f"fillet_{side}"), getattr(s, f"undercut_{side}")
+            if fillet:
+                chamfers.append(f"R{fmt(fillet)} step {step}")
+            if cut:
+                chamfers.append(f"U{fmt(cut.width)}×{fmt(cut.depth)} step {step}")
+
     # Keyway: "KW2 8×20" = on segment 2, 8 wide (from the table), 20 long.
     for i, s in enumerate(segs, start=1):
         if s.keyway:

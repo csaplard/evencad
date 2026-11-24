@@ -11,7 +11,7 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 from server.core.keyway import keyway_size
-from server.core.spec import Chamfer, ShaftSpec, fmt
+from server.core.spec import Chamfer, ShaftSpec, end_size, fmt
 
 
 class Limits(BaseModel):
@@ -99,6 +99,31 @@ def validate(spec: ShaftSpec, limits: Optional[Limits] = None) -> Report:
             elif chamfer_depth(c) > free + 1e-9:
                 err("CHAMFER_TOO_DEEP", f"Seg {i}: chamfer deeper than edge", i)
 
+        # Fillet or undercut: only at an end with a larger neighbour, and not higher than the shoulder.
+        has_root = False
+        for side, nb in (("left", segs[i - 2] if i > 1 else None), ("right", segs[i] if i < len(segs) else None)):
+            fillet, cut = getattr(s, f"fillet_{side}"), getattr(s, f"undercut_{side}")
+            if fillet is None and cut is None:
+                continue
+            has_root = True
+            if nb is None or nb.diameter <= s.diameter:
+                err("ROOT_NO_SHOULDER", f"Seg {i}: no shoulder for {'fillet' if cut is None else 'undercut'}", i)
+                continue
+            facing = nb.chamfer_right if side == "left" else nb.chamfer_left
+            height = (nb.diameter - s.diameter) / 2 - (chamfer_depth(facing) if facing else 0)
+            if cut is None:
+                if fillet <= 0:
+                    err("BAD_FILLET", f"Seg {i}: fillet radius must be over 0", i)
+                elif fillet > height + 1e-9:
+                    err("FILLET_TOO_BIG", f"Seg {i}: fillet higher than shoulder", i)
+            elif cut.width <= 0 or cut.depth <= 0:
+                err("BAD_UNDERCUT", f"Seg {i}: undercut sizes must be over 0", i)
+            elif cut.depth >= s.diameter / 2:
+                err("UNDERCUT_TOO_DEEP", f"Seg {i}: undercut deeper than radius", i)
+        ends = end_size(s, "left") + end_size(s, "right")
+        if has_root and ends > s.length + 1e-9:
+            err("ENDS_TOO_LONG", f"Seg {i}: end features longer than seg", i)
+
         if s.fit and not _FIT_RE.fullmatch(s.fit):
             err("BAD_FIT", f"Seg {i}: {s.fit[:6]} is not a shaft fit", i)
         if s.roughness and s.roughness not in RA_SERIES:
@@ -106,7 +131,7 @@ def validate(spec: ShaftSpec, limits: Optional[Limits] = None) -> Report:
 
         if s.keyway:
             size = keyway_size(s.diameter)
-            room = s.length - sum(c.size for c in chamfers)
+            room = s.length - ends
             if size is None:
                 err("KEYWAY_NO_SIZE", f"Seg {i}: no keyway size for Ø{fmt(s.diameter)}", i)
             elif s.keyway.length <= size.width:

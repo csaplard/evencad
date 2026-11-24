@@ -8,7 +8,7 @@ from typing import Annotated, Literal, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, model_validator
 
-from server.core.spec import Keyway, Chamfer, Segment, ShaftSpec
+from server.core.spec import Chamfer, Keyway, Segment, ShaftSpec, Undercut
 
 
 class OpError(ValueError):
@@ -54,6 +54,19 @@ class SetChamfer(_Op):
     angle: float = 45
 
 
+class SetFillet(_Op):
+    op: Literal["set_fillet"]
+    step: int
+    radius: float  # 0 removes the fillet
+
+
+class SetUndercut(_Op):
+    op: Literal["set_undercut"]
+    step: int
+    width: float  # along the axis. 0 removes the undercut.
+    depth: float  # radial
+
+
 class SetKeyway(_Op):
     op: Literal["set_keyway"]
     index: Index
@@ -91,7 +104,7 @@ class Finish(_Op):
 
 
 Op = Annotated[
-    Union[AddSegment, EditSegment, DeleteSegment, SetChamfer, SetKeyway, SetFit, SetRoughness, SetMaterial, SetTitle, Undo, Finish],
+    Union[AddSegment, EditSegment, DeleteSegment, SetChamfer, SetFillet, SetUndercut, SetKeyway, SetFit, SetRoughness, SetMaterial, SetTitle, Undo, Finish],
     Field(discriminator="op"),
 ]
 _op_adapter = TypeAdapter(Op)
@@ -128,6 +141,24 @@ def _position(spec: ShaftSpec, index: Index) -> int:
     return index - 1
 
 
+def _clear_root(segs: list[Segment], k: int) -> None:
+    """Drop the fillet and the undercut at the joint after segment k (1-based). k = 0 is the left end."""
+    if 1 <= k <= len(segs):
+        segs[k - 1].fillet_right = segs[k - 1].undercut_right = None
+    if 0 <= k < len(segs):
+        segs[k].fillet_left = segs[k].undercut_left = None
+
+
+def root_side(segs: list[Segment], step: int) -> tuple[int, str]:
+    """(1-based segment, "left" or "right"): the end of the smaller segment at this step."""
+    if not 1 <= step <= len(segs) - 1:
+        raise OpError(f"There is no step {step}")
+    left, right = segs[step - 1], segs[step]
+    if left.diameter == right.diameter:
+        raise OpError(f"Step {step} has no shoulder")
+    return (step, "right") if left.diameter < right.diameter else (step + 1, "left")
+
+
 def apply_op(spec: ShaftSpec, op: Op) -> ShaftSpec:
     new = spec.model_copy(deep=True)
     segs = new.segments
@@ -137,6 +168,7 @@ def apply_op(spec: ShaftSpec, op: Op) -> ShaftSpec:
         if op.at is None:
             segs.append(seg)
         elif 1 <= op.at <= len(segs) + 1:
+            _clear_root(segs, op.at - 1)  # the two neighbours do not meet any more
             segs.insert(op.at - 1, seg)
         else:
             raise OpError(f"Cannot add a segment at position {op.at}")
@@ -149,7 +181,9 @@ def apply_op(spec: ShaftSpec, op: Op) -> ShaftSpec:
             seg.length = op.length
 
     elif isinstance(op, DeleteSegment):
-        del segs[_position(new, op.index)]
+        at = _position(new, op.index)
+        del segs[at]
+        _clear_root(segs, at)  # the shoulder that these features were made for is gone
 
     elif isinstance(op, SetChamfer):
         chamfer = Chamfer(size=op.size, angle=op.angle) if op.size > 0 else None
@@ -172,6 +206,22 @@ def apply_op(spec: ShaftSpec, op: Op) -> ShaftSpec:
                 right.chamfer_left = chamfer
             else:
                 raise OpError(f"Step {k} has no shoulder")
+
+    elif isinstance(op, (SetFillet, SetUndercut)):
+        size = op.radius if isinstance(op, SetFillet) else op.width
+        if size < 0 or (isinstance(op, SetUndercut) and op.depth < 0):
+            raise OpError("A size cannot be below 0")
+        if not 1 <= op.step <= len(segs) - 1:
+            raise OpError(f"There is no step {op.step}")
+        if size == 0:
+            _clear_root(segs, op.step)
+        else:
+            number, side = root_side(segs, op.step)
+            _clear_root(segs, op.step)
+            if isinstance(op, SetFillet):
+                setattr(segs[number - 1], f"fillet_{side}", op.radius)
+            else:
+                setattr(segs[number - 1], f"undercut_{side}", Undercut(width=op.width, depth=op.depth))
 
     elif isinstance(op, SetKeyway):
         segs[_position(new, op.index)].keyway = Keyway(length=op.length) if op.length > 0 else None
@@ -212,6 +262,9 @@ def active_after(spec: ShaftSpec, ops: list[Op], current: Optional[int]) -> Opti
             active = _position(spec, op.index) + 1
         elif isinstance(op, DeleteSegment):
             active = None
+        elif isinstance(op, (SetFillet, SetUndercut)):
+            if before.segments[op.step - 1].diameter != before.segments[op.step].diameter:
+                active = root_side(before.segments, op.step)[0]
         elif isinstance(op, SetChamfer):
             if op.where == "left_end":
                 active = 1

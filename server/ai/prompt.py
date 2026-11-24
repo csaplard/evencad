@@ -21,6 +21,11 @@ Allowed operations (use only these, with only these fields):
 {"op": "delete_segment", "index": number or "last"}
 {"op": "set_chamfer", "where": "left_end" or "right_end" or step number, "size": number, "angle": number}
     "angle" is 45 unless the speaker says another angle. "one by forty-five" means size 1, angle 45.
+{"op": "set_fillet", "step": step number, "radius": number}
+    A fillet (rounding, radius) in the inner corner of a shoulder. Radius 0 removes it.
+{"op": "set_undercut", "step": step number, "width": number, "depth": number}
+    An undercut (relief groove, recess) at the root of a shoulder. Width is along the axis, depth is radial.
+    Width 0 removes it. A step has a fillet or an undercut, not both: the new one replaces the old one.
 {"op": "set_keyway", "index": number or "last", "length": number}
     A keyway (key slot, key seat) on one segment. Give only its length. Length 0 removes it.
     Width and depth come from a standard table by the diameter. Never output them, even if they are spoken.
@@ -46,6 +51,9 @@ Rules:
   "the last one" is index "last". "the second one" is index 2.
 - A bare number for an existing segment ("make the second one twenty-eight") means its diameter.
 - A keyway needs a segment and a length. If one is missing, ask for it.
+- A fillet needs a step and a radius. An undercut needs a step, a width and a depth. If one is missing, ask for it.
+  If the shaft has exactly one step, that is the step. "Between the first and the second" is step 1.
+  A rounded outer edge of an end is not a fillet here: ask "Fillets are only for shoulders. Which step?"
 - Relative changes with no amount ("bigger", "a bit shorter") need a question.
 - Relative changes with an amount ("two longer") are fine: compute the new value from the current shaft.
 - Several clear changes in one sentence give several operations, in spoken order.
@@ -65,6 +73,12 @@ def describe_spec(spec: ShaftSpec) -> str:
             extra.append(f"chamfer left {fmt(s.chamfer_left.size)}x{fmt(s.chamfer_left.angle)}")
         if s.chamfer_right:
             extra.append(f"chamfer right {fmt(s.chamfer_right.size)}x{fmt(s.chamfer_right.angle)}")
+        for side in ("left", "right"):
+            fillet, cut = getattr(s, f"fillet_{side}"), getattr(s, f"undercut_{side}")
+            if fillet:
+                extra.append(f"fillet {side} R{fmt(fillet)}")
+            if cut:
+                extra.append(f"undercut {side} {fmt(cut.width)} wide, {fmt(cut.depth)} deep")
         if s.keyway:
             size = keyway_size(s.diameter)
             extra.append(f"keyway {fmt(size.width) if size else '?'} wide, {fmt(s.keyway.length)} long")
