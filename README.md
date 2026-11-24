@@ -2,17 +2,55 @@
 
 > Say it. See it. Sign it.
 
-**Status (Nov 23): the full flow works in the simulator.** Not tested yet: real G2 glasses, the real Anthropic API, a real Google Drive account. See [Known limits](#known-limits).
+**Measure a part with both hands. Say the numbers. Get the drawing. The phone stays in your pocket.**
+
+One hand holds the part. The other hand holds the caliper. Both are oily. You cannot write, and you cannot touch a phone.
+With EvenCAD you say each number as you measure it. The G2 glasses draw the shaft in front of you, step by step.
+When you say "finish", a STEP model, a DXF and a PDF drawing are ready on your phone and in Google Drive.
+
+![The shaft grows on the glasses as you speak](docs/img/active-segment.png)
+
+**Demo video:** not recorded yet. The plan is in [docs/demo-script.md](docs/demo-script.md).
+
+**Status (Nov 24): the full flow works in the simulator.** Not tested yet: real G2 glasses, the real Anthropic API, a real Google Drive account. See [Known limits](#known-limits).
 
 Built for the "Heads Up: Even Realities Hackathon" (Nov 23–29, 2026).
 Track: **04 · AI Assistants & Work**.
 
 Idea and spec were prepared before Nov 23. All code was written during the hackathon.
 
+## In 30 seconds
+
+| You do | You say | The glasses show |
+|---|---|---|
+| Measure the first diameter | "Thirty." | `Next: segment 1 Ø30 length?` |
+| Measure the length | "Forty." | The first segment is drawn |
+| Hear a wrong number | "No." | `Undone.` The app listens again |
+| Add a detail | "Keyway on the second one, twenty long." | The slot appears. Width and depth come from the standard table |
+| End | "Finish." | `DRAFT rev A ready · saved to Drive` |
+
+A bare number needs no AI call, so the answer is on the display at once. A full sentence goes to Claude.
+
+## Why glasses
+
+- **Hands busy.** Measuring needs two hands. A tap on the temple or on the R1 ring is the only touch.
+- **Eyes on the part.** The read-back is in your view. You see a wrong number at once and say "no".
+- **No phone, no PC, no CAD program at the bench.** The phone is needed only at the end, when a person approves the drawing.
+
+## Why you can trust the drawing
+
+- The AI never writes geometry. It turns a sentence into small typed operations. Plain code checks them and draws.
+- Sizes that matter come from you or from a table in the code (keyway sizes, fit limits, densities). The AI cannot set them.
+- If a number is missing, the AI asks. It does not guess.
+- Every drawing is a **DRAFT** until a person approves it on the phone. The AI has no way to approve. Any later change makes it a DRAFT again.
+
 ## Problem and user
 
-A worker holds a part and a caliper. Their hands are busy. They say the shaft
-dimensions out loud. The G2 glasses show a side view that grows as they speak.
+People who measure and make parts by hand: workshops, small machine shops, maintenance, field service, students.
+Today they write the numbers on paper with dirty hands. Later someone types them into a CAD program.
+Numbers get lost or swapped on the way.
+
+With EvenCAD the worker says the shaft dimensions out loud. The G2 glasses show a side view that grows as they speak.
 They confirm with a tap or the R1 ring. At the end they get STEP, DXF and PDF files.
 No computer and no CAD program is needed.
 
@@ -91,7 +129,7 @@ speech → Whisper (on our server) → text → Claude (interpreter) → typed o
 
 - `finish` also copies the three files to a Google Drive folder (when Drive is set up). Approval replaces the DXF and PDF there.
 
-Not done yet: real G2 test, one-command start.
+Not done yet: real G2 test.
 
 The interpreter has two adapters with the same prompt and the same JSON answer:
 
@@ -126,7 +164,7 @@ the app page, for example `diameter thirty, forty long`. Say or type `finish` to
 Options: `-NoSimulator` / `--no-simulator`, and `-Docker` / `--docker` to run the backend in a
 container. Backend only: `docker compose up --build`.
 
-Tested so far: `scriptsstart.ps1` on Windows 11. The bash script and the Docker build are written but not run yet.
+Tested so far: `scripts\start.ps1` on Windows 11. The bash script and the Docker build are written but not run yet.
 
 ## Setup step by step
 
@@ -278,7 +316,7 @@ It asks for two permissions only: `network` (one origin, our backend) and `g2-mi
 - **Hungarian speech** was not tried with a real voice or with the `small` Whisper model. Only the text path is tested.
 - **Drawing polish.** Diameter dimensions on the sheet cross the centre line.
 - **One Google account, no user accounts.** A session is protected by its token only. The token is in the phone page link, so the link is the key: do not share it.
-- English only.
+- **Languages:** English and Hungarian dictation. The display is English only.
 
 More detail: [docs/open-questions.md](docs/open-questions.md).
 

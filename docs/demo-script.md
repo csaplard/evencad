@@ -3,7 +3,7 @@
 This is the plan for the demo video. It is also the acceptance test (`EVENCAD_SPEC.md`, section 9).
 The part is made up. No real production data.
 
-Status on Nov 23: every step below works in the simulator with typed text.
+Status on Nov 24: every step below works in the simulator with typed text.
 Steps with voice, the Anthropic API, Google Drive and real G2 still need a run by Dániel (see "Before recording").
 
 ## The part
@@ -17,6 +17,14 @@ A small made-up drive shaft, 130 mm long:
 | 3 | 20 | 30 | chamfer 1 × 45° on the right end |
 
 Have the part (or a dummy) and a caliper in the hands. The point of the demo: both hands are busy.
+
+## The first 15 seconds
+
+The jury sees many videos. The first shot must say why this needs glasses.
+
+- Picture: two hands, one with the part, one with the caliper. Oil or a glove is good. A phone and a pen lie on the bench, out of reach.
+- No logo and no title card first. Start with the hands.
+- The phone does not appear before 2:10. Until then nobody touches a screen. Say this once in the voice-over.
 
 ## Before recording
 
@@ -32,7 +40,7 @@ Times are targets. Speak slowly and leave a short pause after each number.
 
 | Time | What you do | What you say | What the display shows |
 |---|---|---|---|
-| 0:00 | Hold the part and the caliper. Glasses on. | (voice-over) "Measuring a part by hand means writing numbers with dirty hands. EvenCAD takes them by voice and makes the drawing." | `Tap and say a number. Next: segment 1 diameter?` |
+| 0:00 | Hold the part and the caliper. Glasses on. | (voice-over) "Both hands are busy. I cannot write, and I cannot take out my phone. So I say the numbers, and my glasses draw the part." | `Tap and say a number. Next: segment 1 diameter?` |
 | 0:15 | Tap. Measure the first diameter. | "Thirty." | `Next: segment 1 Ø30 length?` The app listens again by itself. |
 | 0:22 | Measure the length. | "Forty." | The first segment is drawn. `Next: segment 2 diameter?` |
 | 0:28 | Tap. Second segment. | "Twenty five." … "Sixty." | Two segments. The new one has thick lines. |
@@ -48,12 +56,24 @@ Times are targets. Speak slowly and leave a short pause after each number.
 | 1:53 | Tap. | "Finish." | `Tap to accept the warning and finish` |
 | 1:57 | The flange was a mistake. Tap. | "Undo." | `Undone`. The flange is gone. Then say "Finish." ("No" here would only close the warning prompt.) |
 | 2:05 | Wait. | | `DRAFT rev A ready · saved to Drive · code ……` |
-| 2:10 | Phone: open the files page. | (voice-over) "The files are on the phone and in Google Drive." | Side view, STEP, DXF, PDF buttons, AI hints box. |
+| 2:10 | Phone: open the files page. This is the first time a phone is in the picture. | (voice-over) "Two minutes, and I did not touch a screen. Now the files are on the phone and in Google Drive." | Side view, STEP, DXF, PDF buttons, AI hints box. |
 | 2:20 | Open the PDF. Zoom to the title block. | "It is a draft. The AI never approves." | `DRAFT – requires engineering approval`, `Rev: A`, keyway note, mass. |
 | 2:30 | Show the Drive folder tab. | | The same three files. |
 | 2:37 | Phone: type a name, press "Approve for review". Open the PDF again. | "A person approves it." | `Approved for review by: …` |
 | 2:47 | Glasses: one more change. Tap. | "Make the first one thirty two." | The drawing is a DRAFT again. Say "Finish": `DRAFT rev B ready`. |
-| 2:57 | End card. | "EvenCAD. From the part in your hand to a drawing, hands-free." | |
+| 2:57 | End card. | "EvenCAD. From the part in your hand to a drawing. Hands busy, phone in the pocket." | |
+
+## Built, but not in the video
+
+The video stays at 3 minutes. These work, and the README shows them:
+
+- Fillet and undercut at a shoulder ("fillet radius two at the first step").
+- Fit limits from the ISO 286 table as a note on the sheet.
+- Hungarian dictation (`STT_LANGUAGE=hu`).
+- AI hints after `finish` (they are in the 2:10 shot, on the phone page).
+
+If there is time for one more line, swap the 1:45 warning shot for "Fillet radius two at the first step".
+The arc is easy to see in the 3D view.
 
 ## If something goes wrong during recording
 
