@@ -609,6 +609,29 @@ def warm_up_stt() -> None:
     threading.Thread(target=load, name="stt-warmup", daemon=True).start()
 
 
+def warm_up_imports() -> None:
+    """Import the heavy packages in the background. No network call is made.
+
+    The first import of the Anthropic SDK took 7 s on the dev laptop, and CadQuery is slow too.
+    """
+    import importlib
+    import threading
+
+    def load():
+        names = ["cadquery"]
+        if (os.environ.get("INTERPRETER") or "api").lower() == "api":
+            names.insert(0, "anthropic")
+        for name in names:
+            try:
+                importlib.import_module(name)
+            except Exception as e:  # warm-up must never stop the server
+                log.warning("warm-up import of %s failed: %s", name, e)
+        log.info("packages are ready")
+
+    threading.Thread(target=load, name="import-warmup", daemon=True).start()
+
+
 app = create_app()
 if os.environ.get("STT_WARMUP") == "1":
     warm_up_stt()
+    warm_up_imports()

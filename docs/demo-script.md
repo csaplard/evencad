@@ -30,7 +30,7 @@ The jury sees many videos. The first shot must say why this needs glasses.
 
 1. `.env`: `INTERPRETER=api`, `ANTHROPIC_API_KEY`, `GOOGLE_DRIVE_FOLDER_ID` set. Run `python -m tools.drive_auth` once.
 2. Start everything: `powershell -ExecutionPolicy Bypass -File scripts\start.ps1`.
-3. Wait for "speech model is ready" in the log. The first sentence is slow without the warm-up.
+3. Wait for "speech model is ready" and "packages are ready" in the log. The first sentence is slow without the warm-up.
 4. Open the Google Drive folder in a browser tab. Open the companion page on the phone.
 5. Do one full dry run. Delete the test files from Drive after it.
 

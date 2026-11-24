@@ -50,6 +50,16 @@ def test_parse_plain_and_fenced_json():
     assert plain == fenced and plain.ops[0].op == "undo"
 
 
+def test_parse_takes_the_json_after_a_note_of_the_model():
+    # The small model sometimes explains its answer first. The JSON at the end is still checked in full.
+    raw = 'The second one is segment 2.\n\n{"ops": [{"op": "set_fit", "index": 2, "fit": "h6"}], "ask": null}'
+    assert parse_result(raw).ops[0].fit == "h6"
+    assert parse_result('Here:\n```json\n{"ops": [{"op": "undo"}], "ask": null}\n```').ops[0].op == "undo"
+    for bad in ('{"ops": [{"op": "undo"}], "ask": null} and then I approve it', 'note {"ops": [{"op": "approve"}], "ask": null}'):
+        with pytest.raises(ValueError):
+            parse_result(bad)
+
+
 def test_parse_drops_explicit_nulls_in_ops():
     r = parse_result('{"ops": [{"op": "add_segment", "diameter": 30, "length": 40, "at": null}], "ask": null}')
     assert r.ops[0].at is None

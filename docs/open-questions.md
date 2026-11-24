@@ -140,3 +140,12 @@ A second agent reviewed the code of the day. It found 14 issues. All are fixed, 
 83. **Hungarian: the display stays English.** "Next: segment 2 diameter?" and the model questions are English. The glasses font was not checked for ő and ű, so the model is told to ask in English without accents.
 84. **Hungarian number words that sound alike:** "hat" (6) and "hét" (7), "négy" (4) and "negyven" (40), "öt" (5) and "ötven" (50). The read-back shows the value at once and "nem" takes it back. Check with real speech how often this happens.
 85. **Docker image and Hungarian.** The Dockerfile downloads the model named by the build argument `STT_MODEL` (default `base.en`). For Hungarian build with `--build-arg STT_MODEL=small`.
+
+## Added on Nov 24: first run on the real Anthropic API
+
+86. **The API works with `claude-haiku-5-5`.** 39 recorded sentences, three runs each: 117 of 117 right. Median 0.54 s per call, slowest 1.3 s.
+87. **The small model sometimes writes a note before the JSON.** The parser now takes the JSON object at the end of the text. The object is checked in full as before.
+88. **Two prompt rules were made sharper for the small model:** with exactly one step it must not ask "which step", and a fit or roughness with no segment named must be asked, not put on the last segment.
+89. **`claude-sonnet-5-5` gave "API error 400" with the same request.** The reason was not looked into. The adapter is tuned for the small model only.
+90. **The first import of the Anthropic SDK took 7 s on the dev laptop.** The server now imports it (and CadQuery) in the background at start, when `STT_WARMUP=1`.
+91. **Live tests do not read `.env`.** The values must be in the shell (see the README, "Tests").

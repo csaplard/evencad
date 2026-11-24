@@ -93,7 +93,7 @@ Change the text if one of these is still open on the day:
 
 - [ ] The demo video is recorded with real speech, and the link is in the README and above.
 - [ ] The app ran on real G2 glasses. If not, write "tested in the Even Hub simulator" in the short description.
-- [ ] The real Anthropic API was used. If not, say that the interpreter ran through the Claude Code CLI adapter.
+- [x] The real Anthropic API was used (Nov 24: 117 of 117 test calls right, about 0.5 s per call).
 - [ ] Google Drive upload ran with a real account. If not, remove "and in Google Drive".
 - [ ] Hungarian speech was tried with a voice. If not, write "Hungarian text input" and not "Hungarian dictation".
 - [ ] The test count is still right (`python -m pytest`).

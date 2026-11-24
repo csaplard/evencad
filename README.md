@@ -12,7 +12,7 @@ When you say "finish", a STEP model, a DXF and a PDF drawing are ready on your p
 
 **Demo video:** not recorded yet. The plan is in [docs/demo-script.md](docs/demo-script.md).
 
-**Status (Nov 24): the full flow works in the simulator.** Not tested yet: real G2 glasses, the real Anthropic API, a real Google Drive account. See [Known limits](#known-limits).
+**Status (Nov 24): the full flow works in the simulator.** The interpreter runs on the real Anthropic API. Not tested yet: real G2 glasses, a real Google Drive account, a human voice. See [Known limits](#known-limits).
 
 Built for the "Heads Up: Even Realities Hackathon" (Nov 23–29, 2026).
 Track: **04 · AI Assistants & Work**.
@@ -136,7 +136,8 @@ The interpreter has two adapters with the same prompt and the same JSON answer:
 - `INTERPRETER=api` (default): the Anthropic API. Needs `ANTHROPIC_API_KEY` in `.env`. Model: `CLAUDE_MODEL` (default `claude-haiku-5-5`).
 - `INTERPRETER=cli`: the Claude Code CLI, for development without an API key. Slow (5–8 s per sentence).
 
-The API adapter is tested with a fake client only. It has not been run against the real API yet (no key on the dev machine).
+The API adapter was run against the real API on Nov 24 with `claude-haiku-5-5`: the 39 recorded sentences, three times each
+(117 calls), all correct. One call takes about 0.5 s (median 0.54 s, slowest 1.3 s). The AI hints after `finish` work too.
 
 ![The slice in the simulator](docs/img/slice-2-ask.png)
 
@@ -240,6 +241,9 @@ Current mapping (simulator). It is checked again on real G2.
 ```bash
 .venv/Scripts/python -m pytest          # unit tests, no network
 .venv/Scripts/python -m pytest -m live  # asks the real model (INTERPRETER=cli or api)
+# Tests never read .env. For the live run with the API, put the values into the shell first:
+#   bash:        set -a; . ./.env; set +a
+#   PowerShell:  $env:INTERPRETER = 'api'; $env:ANTHROPIC_API_KEY = '...'
 .venv/Scripts/python -m tools.record_golden   # record fresh model answers into samples/golden.json
 ```
 
@@ -306,10 +310,11 @@ It asks for two permissions only: `network` (one origin, our backend) and `g2-mi
 
 - **Not tested on real G2.** Image refresh speed, text size, the microphone level and the input
   mapping are checked only in the simulator.
-- **Not run against the real Anthropic API or a real Google Drive.** Both are tested with stand-ins.
-  The development runs used the Claude Code CLI adapter.
+- **Not run against a real Google Drive.** It is tested with a stand-in.
 - **Speed.** The target is under 4 seconds from the end of speech to the new drawing. Speech-to-text
-  takes about 1 second here. The Claude call is not measured with the API yet.
+  takes about 1 second here and the Claude call about 0.5 second. The whole chain with a human voice on real glasses is not measured.
+- **The model answers are not the same on every run.** 117 of 117 test calls were right, but a wrong answer is possible.
+  The read-back shows what was understood, and "no" takes it back.
 - **Speech-to-text** was checked with a computer voice only. Human voices and workshop noise are open.
 - **One part family:** stepped shafts with chamfers, shoulder fillets, plain undercuts and keyways. No threads, no cross holes,
   no geometric tolerances. Fits and roughness are notes.

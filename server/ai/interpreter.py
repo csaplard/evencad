@@ -38,7 +38,15 @@ def parse_result(raw: str) -> InterpreterResult:
     try:
         data = json.loads(text)
     except json.JSONDecodeError as e:
-        raise ValueError(f"not JSON: {e}") from e
+        # The model may write a note first. Take the JSON object at the very end of the text.
+        tail = re.sub(r"\s*```\s*$", "", text)
+        start = tail.rfind('{"ops"')
+        if start < 0:
+            raise ValueError(f"not JSON: {e}") from e
+        try:
+            data = json.loads(tail[start:])
+        except json.JSONDecodeError as e2:
+            raise ValueError(f"not JSON: {e2}") from e2
     if not isinstance(data, dict):
         raise ValueError("not a JSON object")
     if not data.get("ask"):

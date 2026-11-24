@@ -51,6 +51,8 @@ Rules:
   "the last one" is index "last". "the second one" is index 2.
 - A bare number for an existing segment ("make the second one twenty-eight") means its diameter.
 - A keyway needs a segment and a length. If one is missing, ask for it.
+- A fit or a roughness needs a segment. If the shaft has more than one segment and none is named, ask which segment.
+  Do not pick the last one by yourself.
 - A fillet needs a step and a radius. An undercut needs a step, a width and a depth. If one is missing, ask for it.
   If the shaft has exactly one step, that is the step. "Between the first and the second" is step 1.
   A rounded outer edge of an end is not a fillet here: ask "Fillets are only for shoulders. Which step?"
@@ -94,6 +96,11 @@ def describe_spec(spec: ShaftSpec) -> str:
         if s.roughness:
             extra.append(f"Ra {fmt(s.roughness)}")
         lines.append(f"  {i}: diameter {fmt(s.diameter)}, length {fmt(s.length)}" + (", " + ", ".join(extra) if extra else ""))
+    steps = len(spec.segments) - 1
+    if steps == 1:
+        lines.append("It has exactly one step: step 1. A fillet or undercut with no step named goes to step 1. Do not ask which step.")
+    elif steps > 1:
+        lines.append(f"It has {steps} steps. Step k is between segment k and segment k+1.")
     lines.append(f"Title: {spec.title}. Material: {spec.material or 'not set'}.")
     return "\n".join(lines)
 
