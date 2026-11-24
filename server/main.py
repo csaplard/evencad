@@ -103,8 +103,11 @@ def create_app(
     auth: bool = True,
     reviewer: Union[Reviewer, None, str] = "auto",
     review_in_background: bool = True,
+    drive_in_background: bool = True,
 ) -> FastAPI:
     """`drive`: an uploader, None (off), or "auto" (set up from the environment on first use).
+
+    `drive_in_background`: `finish` does not wait for the upload. The state says "uploading", then "ok" or "error".
 
     `auth`: every call to a session needs the session token. Only tests turn it off.
     """
@@ -117,6 +120,14 @@ def create_app(
 
     session_locks: dict[str, asyncio.Lock] = {}
     reviewing: set[tuple[str, str]] = set()  # (session id, revision) with a review in flight
+    # One lock per session for the output files: they are not rewritten while an upload reads them,
+    # and two uploads of one session never run at the same time.
+    file_locks: dict[str, threading.Lock] = {}
+    file_locks_guard = threading.Lock()
+
+    def files_of(sid: str) -> threading.Lock:
+        with file_locks_guard:
+            return file_locks.setdefault(sid, threading.Lock())
     session_path = re.compile(rf"/(?:session|s)/({SESSION_ID_PATTERN})(?:/|$)")
 
     @app.middleware("http")
@@ -165,27 +176,51 @@ def create_app(
             holder["stt"] = get_stt()
         return holder["stt"]
 
-    def upload_to_drive(session: Session, kinds: Optional[list[str]] = None) -> None:
-        """Copy the output files to Google Drive. A Drive problem never blocks the drawing."""
+    def upload_to_drive(session: Session, kinds: Optional[list[str]] = None, background: bool = False) -> None:
+        """Copy the output files to Google Drive. A Drive problem never blocks the drawing.
+
+        `background`: return at once with the status "uploading". The upload runs in its own thread.
+        """
         sid = session.spec.id
-        t0 = time.perf_counter()
-        try:
-            if holder["drive"] == "auto":
-                holder["drive"] = get_uploader()
-            uploader = holder["drive"]
-            if uploader is None:
-                session.drive = None
-                return
-            paths = {k: store.out_dir(sid) / name for k, name in FILE_NAMES.items() if not kinds or k in kinds}
-            result = uploader.upload(sid, paths)
-            previous = (session.drive or {}).get("files", {}) if (session.drive or {}).get("status") == "ok" else {}
-            session.drive = {"status": "ok", "folder_url": result["folder_url"], "files": {**previous, **result["files"]}, "at": now_iso()}
-            session.record("drive_upload", files=sorted(result["files"]), ms=round((time.perf_counter() - t0) * 1000))
-        except DriveError as e:
-            holder["drive"] = "auto"  # try to set up again next time
-            session.drive = {"status": "error", "message": str(e)}
-            session.record("drive_error", message=str(e))
-            log.warning("drive upload failed for %s: %s", sid, e)
+
+        def work(previous: dict) -> None:
+            t0 = time.perf_counter()
+            try:
+                if holder["drive"] == "auto":
+                    holder["drive"] = get_uploader()
+                uploader = holder["drive"]
+                if uploader is None:
+                    session.drive = None
+                    return
+                paths = {k: store.out_dir(sid) / name for k, name in FILE_NAMES.items() if not kinds or k in kinds}
+                result = uploader.upload(sid, paths)
+                session.drive = {"status": "ok", "folder_url": result["folder_url"], "files": {**previous, **result["files"]}, "at": now_iso()}
+                session.record("drive_upload", files=sorted(result["files"]), ms=round((time.perf_counter() - t0) * 1000))
+            except DriveError as e:
+                holder["drive"] = "auto"  # try to set up again next time
+                session.drive = {"status": "error", "message": str(e)}
+                session.record("drive_error", message=str(e))
+                log.warning("drive upload failed for %s: %s", sid, e)
+
+        def locked_work() -> None:
+            with files_of(sid):
+                work((session.drive or {}).get("files", {}) if (session.drive or {}).get("status") == "ok" else {})
+
+        if not background or holder["drive"] is None:
+            locked_work()
+            return
+
+        def in_thread() -> None:
+            try:
+                locked_work()
+            except Exception as e:  # the thread must always leave a final status
+                session.drive = {"status": "error", "message": "Google Drive upload failed"}
+                log.exception("drive upload crashed for %s: %s", sid, e)
+            store.save(session)
+
+        with files_of(sid):  # wait for an older upload, then mark the new one
+            session.drive = {"status": "uploading"}
+        threading.Thread(target=in_thread, name="drive-upload", daemon=True).start()
 
     def active_of(session: Session) -> Optional[int]:
         """The marked segment, or None when it no longer exists."""
@@ -306,11 +341,12 @@ def create_app(
             session.revisions.append({"rev": revision_name(len(session.revisions) + 1), "at": now_iso(), "fingerprint": mark})
         session.spec.revision = session.revisions[-1]["rev"]
         out = store.out_dir(session.spec.id)
-        export_all(session.spec, out)
-        archive(out, session.spec.revision)
+        with files_of(session.spec.id):
+            export_all(session.spec, out)
+            archive(out, session.spec.revision)
         session.finished = True
         session.record("finish", revision=session.spec.revision, warnings_confirmed=[m.code for m in report.warnings], export_ms=round((time.perf_counter() - t0) * 1000))
-        upload_to_drive(session)
+        upload_to_drive(session, background=drive_in_background)
         start_review(session)
         return {}
 
@@ -521,8 +557,9 @@ def create_app(
         if session.revisions:
             session.revisions[-1]["approved"] = True
         session.spec.approved_at = datetime.now(timezone.utc)
-        rebuild_sheets(session.spec, store.out_dir(sid))
-        archive(store.out_dir(sid), session.spec.revision or "A")
+        with files_of(sid):
+            rebuild_sheets(session.spec, store.out_dir(sid))
+            archive(store.out_dir(sid), session.spec.revision or "A")
         upload_to_drive(session, kinds=["dxf", "pdf"])
         session.record("approved", by=session.spec.approved_by, revision=session.spec.revision)
         store.save(session)
@@ -565,6 +602,8 @@ async function approve(ev) {{
         drive = st.get("drive") or {}
         if drive.get("status") == "ok":
             links += f'<a class="btn drive" href="{e(drive["folder_url"])}">Google Drive folder</a>'
+        elif drive.get("status") == "uploading":
+            mark += "<p class='draft'>Google Drive: uploading… Reload the page in a moment.</p>"
         elif drive.get("status") == "error":
             mark += f"<p class='draft'>Google Drive: {e(drive['message'])}</p>"
         older = [r["rev"] for r in session.revisions if r["rev"] != spec.revision]

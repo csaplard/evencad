@@ -128,6 +128,7 @@ speech → Whisper (on our server) → text → Claude (interpreter) → typed o
 - Every session has a secret token. The server gives it once, when the session is made. Every call needs it, so the session id alone opens nothing.
 
 - `finish` also copies the three files to a Google Drive folder (when Drive is set up). Approval replaces the DXF and PDF there.
+  `finish` does not wait for the upload. The display says `saving to Drive…` and then `saved to Drive` or `Drive failed`.
 
 Not done yet: real G2 test.
 
@@ -312,7 +313,7 @@ It asks for two permissions only: `network` (one origin, our backend) and `g2-mi
 - **Not tested on real G2.** Image refresh speed, text size, the microphone level and the input
   mapping are checked only in the simulator.
 - **Google Drive** was run with one real account on Nov 24: `finish` put the three files into a new sub-folder, and the approval
-  replaced the DXF and the PDF. `finish` with the upload took 14 s on the first run (slow first imports plus about 6 s of upload).
+  replaced the DXF and the PDF. The upload takes about 6 s. It runs in the background: with a warm server `finish` answers in about 1 s.
 - **Speed.** The target is under 4 seconds from the end of speech to the new drawing. Speech-to-text
   takes about 1 second here and the Claude call about 0.5 second. The whole chain with a human voice on real glasses is not measured.
 - **The model answers are not the same on every run.** 117 of 117 test calls were right, but a wrong answer is possible.

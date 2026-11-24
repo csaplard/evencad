@@ -153,5 +153,13 @@ A second agent reviewed the code of the day. It found 14 issues. All are fixed, 
 ## Added on Nov 24: first run with a real Google Drive
 
 92. **Drive upload works with a real account.** `finish` made a sub-folder with `shaft.step`, `shaft.dxf`, `shaft.pdf`. The approval replaced the DXF and the PDF in place (same files, new versions).
-93. **`finish` with the upload is slow.** 14 s on the first run in a fresh process. About 6 s of it is the three uploads, one after the other. The rest is the first import of CadQuery, which the warm-up now does at start. Measure it again with the started server. If it is still slow, upload in the background and show `saved to Drive` when it is done.
+93. **`finish` with the upload is slow.** 14 s on the first run in a fresh process. About 6 s of it is the three uploads, one after the other. The rest is the first import of CadQuery, which the warm-up now does at start. Done later on Nov 24: the upload runs in the background (see 95).
 94. **The folder id line is easy to miss.** `tools.drive_auth` prints it, but the user must copy it into `.env`. On the dev machine it was missing after the sign-in. The tool could write it into `.env` itself.
+
+## Added on Nov 24: upload in the background
+
+95. **`finish` does not wait for Google Drive.** Measured with a real Drive and a warm server: `finish` answers in 1.0 s, the upload is done 6 s later. The state says `uploading`, then `ok` or `error`. The glasses app asks the server every 1.5 s, for 60 s at most. This was not seen in the simulator or on real glasses yet, only type-checked.
+96. **The approval still waits for its upload** (about 4 s on the phone page). The output files of one session have a lock: they are not rewritten while an upload reads them.
+97. **The phone page does not refresh by itself.** While the upload runs it says "Google Drive: uploading… Reload the page in a moment."
+98. **An AI hint that is too long is dropped, the other hints stay.** Before, one long hint threw away all hints of that run (seen once with the real API).
+99. **Store name.** The rule is in the Even Hub docs (`docs/sdk-notes.md`): the app `name` must not contain "Even". `app.json` uses "ShaftCAD Draft". The repo, the README and the submission still say "EvenCAD". Pick one final name before the submission.

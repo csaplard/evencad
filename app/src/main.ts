@@ -8,7 +8,7 @@ import {
   OsEventTypeList,
   AudioInputSource,
 } from '@evenrealities/even_hub_sdk'
-import { BACKEND, createSession, fetchTile, finish, sendAudio, sendUtterance, undo } from './api'
+import { BACKEND, createSession, fetchState, fetchTile, finish, sendAudio, sendUtterance, undo } from './api'
 import { Recorder } from './recorder'
 import type { SessionState } from './api'
 
@@ -132,13 +132,37 @@ function show(next: SessionState) {
   if (problem) lines.push(`${validation.errors.length ? 'Error' : 'Warning'}: ${problem.text}`)
   if (needs_confirm) lines.push('Tap to accept the warning and finish')
   else if (finished) {
-    const saved = next.drive?.status === 'ok' ? ' · saved to Drive' : next.drive?.status === 'error' ? ' · Drive failed' : ''
+    const drive = next.drive?.status
+    const saved = drive === 'ok' ? ' · saved to Drive' : drive === 'error' ? ' · Drive failed' : drive === 'uploading' ? ' · saving to Drive…' : ''
     lines.push(`DRAFT rev ${next.revision ?? '-'} ready${saved} · code ${next.id.slice(-6)}`)
+    if (drive === 'uploading') watchDrive()
   } else if (next.guide) lines.push(empty ? `Tap and say a number. ${next.guide.text}` : next.guide.text)
   setText(INFO, lines.join('\n'))
 
   redraw()
   renderPhone()
+}
+
+// finish does not wait for Google Drive. Ask the server every 1.5 s (60 s at most) until the upload is done.
+// Only the Drive part of the state is taken over, so a newer sentence on the display is never overwritten.
+let driveTimer: ReturnType<typeof setTimeout> | undefined
+function watchDrive(triesLeft = 40) {
+  clearTimeout(driveTimer)
+  driveTimer = setTimeout(async () => {
+    const watched = state
+    if (!watched || watched.drive?.status !== 'uploading') return
+    try {
+      const fresh = await fetchState(watched.id)
+      if (state !== watched) return // something else happened in the meantime
+      if (fresh.finished && fresh.revision === watched.revision && fresh.drive?.status !== 'uploading') {
+        show({ ...watched, drive: fresh.drive })
+        return
+      }
+    } catch {
+      // the network may come back: try again
+    }
+    if (triesLeft > 1) watchDrive(triesLeft - 1)
+  }, 1500)
 }
 
 function redraw() {

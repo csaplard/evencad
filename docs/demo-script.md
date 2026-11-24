@@ -55,7 +55,7 @@ Times are targets. Speak slowly and leave a short pause after each number.
 | 1:45 | Tap. Trigger a warning. | "Add a segment, diameter ninety, ten long." | `Warning: Large step: 20 to 90` |
 | 1:53 | Tap. | "Finish." | `Tap to accept the warning and finish` |
 | 1:57 | The flange was a mistake. Tap. | "Undo." | `Undone`. The flange is gone. Then say "Finish." ("No" here would only close the warning prompt.) |
-| 2:05 | Wait. | | `DRAFT rev A ready · saved to Drive · code ……` |
+| 2:05 | Wait about 6 seconds. | | First `DRAFT rev A ready · saving to Drive… · code ……`, then `saved to Drive`. |
 | 2:10 | Phone: open the files page. This is the first time a phone is in the picture. | (voice-over) "Two minutes, and I did not touch a screen. Now the files are on the phone and in Google Drive." | Side view, STEP, DXF, PDF buttons, AI hints box. |
 | 2:20 | Open the PDF. Zoom to the title block. | "It is a draft. The AI never approves." | `DRAFT – requires engineering approval`, `Rev: A`, keyway note, mass. |
 | 2:30 | Show the Drive folder tab. | | The same three files. |

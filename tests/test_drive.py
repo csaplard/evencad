@@ -3,6 +3,8 @@
 The real upload needs a one-time sign-in (python -m tools.drive_auth) and is checked by hand.
 """
 
+import threading
+import time
 from pathlib import Path
 
 import pytest
@@ -130,8 +132,8 @@ class FakeInterpreter:
         return InterpreterResult.model_validate({"ops": ops, "ask": None})
 
 
-def run(tmp_path, drive):
-    client = TestClient(create_app(auth=False, data_dir=tmp_path, interpreter=FakeInterpreter(), drive=drive))
+def run(tmp_path, drive, background=False):
+    client = TestClient(create_app(auth=False, data_dir=tmp_path, interpreter=FakeInterpreter(), drive=drive, drive_in_background=background))
     sid = client.post("/session").json()["id"]
     client.post(f"/session/{sid}/utterance", json={"text": "add"})
     st = client.post(f"/session/{sid}/utterance", json={"text": "finish"}).json()
@@ -173,3 +175,67 @@ def test_drive_info_is_hidden_until_the_drawing_is_finished_again(tmp_path):
     client, sid, _ = run(tmp_path, FakeUploader())
     st = client.post(f"/session/{sid}/utterance", json={"text": "add"}).json()
     assert not st["finished"] and st["drive"] is None
+
+
+# ── upload in the background ─────────────────────────────────────────────────
+class SlowUploader(FakeUploader):
+    """Waits inside the upload until the test lets it go."""
+
+    def __init__(self, fail=False):
+        super().__init__(fail=fail)
+        self.started, self.go = threading.Event(), threading.Event()
+
+    def upload(self, session_id, paths):
+        self.started.set()
+        assert self.go.wait(5)
+        return super().upload(session_id, paths)
+
+
+def drive_state(client, sid, want):
+    """Ask the server until the Drive status is the wanted one."""
+    for _ in range(100):
+        st = client.get(f"/session/{sid}/spec").json()
+        if (st["drive"] or {}).get("status") == want:
+            return st
+        time.sleep(0.02)
+    raise AssertionError(f"Drive status never became {want}: {st['drive']}")
+
+
+def test_finish_does_not_wait_for_the_upload(tmp_path):
+    drive = SlowUploader()
+    client, sid, st = run(tmp_path, drive, background=True)
+    assert st["finished"] and st["drive"] == {"status": "uploading"}
+    assert client.get(st["files"]["pdf"]).status_code == 200  # the files are ready before the upload ends
+    assert "Google Drive: uploading" in client.get(f"/s/{sid}").text
+    drive.go.set()
+    st = drive_state(client, sid, "ok")
+    assert set(st["drive"]["files"]) == {"step", "dxf", "pdf"}
+    assert "Google Drive folder" in client.get(f"/s/{sid}").text
+
+
+def test_a_failure_in_the_background_is_shown(tmp_path):
+    drive = SlowUploader(fail=True)
+    client, sid, st = run(tmp_path, drive, background=True)
+    assert st["finished"] and st["error"] is None
+    drive.go.set()
+    assert drive_state(client, sid, "error")["drive"]["message"] == "Google Drive error 403"
+
+
+def test_no_uploader_means_no_uploading_mark(tmp_path):
+    _, _, st = run(tmp_path, None, background=True)
+    assert st["finished"] and st["drive"] is None
+
+
+def test_the_approval_waits_for_the_running_upload(tmp_path):
+    drive = SlowUploader()
+    client, sid, _ = run(tmp_path, drive, background=True)
+    assert drive.started.wait(5)
+    answer = {}
+    approval = threading.Thread(target=lambda: answer.update(client.post(f"/session/{sid}/approve", json={"name": "Kis Anna"}).json()))
+    approval.start()
+    time.sleep(0.2)
+    assert approval.is_alive() and drive.calls == []  # the sheets are not rebuilt while the first upload reads them
+    drive.go.set()
+    approval.join(5)
+    assert [set(files) for _, files in drive.calls] == [{"step", "dxf", "pdf"}, {"dxf", "pdf"}]
+    assert answer["drive"]["status"] == "ok" and set(answer["drive"]["files"]) == {"step", "dxf", "pdf"}

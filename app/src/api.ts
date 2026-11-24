@@ -27,7 +27,8 @@ export interface SessionState {
   active_segment: number | null
   // Guided measuring: what the display asks for next. null when the drawing is finished.
   guide: { segment: number; field: 'diameter' | 'length'; diameter: number | null; text: string } | null
-  drive: { status: 'ok' | 'error'; folder_url?: string; message?: string } | null
+  // "uploading": finish does not wait for Google Drive. Ask again with fetchState until it is "ok" or "error".
+  drive: { status: 'uploading' | 'ok' | 'error'; folder_url?: string; message?: string } | null
   heard: string | null
   ask: string | null
   error: string | null
@@ -67,6 +68,13 @@ export const sendUtterance = (id: string, text: string) => call(`/session/${id}/
 export const undo = (id: string) => call(`/session/${id}/undo`)
 export const finish = (id: string, confirmWarnings: boolean) =>
   call(`/session/${id}/finish`, { confirm_warnings: confirmWarnings })
+
+// The current state, with no change. Used to wait for the Drive upload.
+export async function fetchState(id: string): Promise<SessionState> {
+  const res = await fetch(`${BACKEND}/session/${id}/spec`, { headers: auth() })
+  if (!res.ok) throw new Error(`state failed: ${res.status}`)
+  return res.json()
+}
 
 // One spoken sentence as a WAV file (16 kHz, 16-bit, mono).
 export async function sendAudio(id: string, wav: Uint8Array): Promise<SessionState> {

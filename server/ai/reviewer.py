@@ -49,9 +49,8 @@ class ReviewResult(BaseModel):
     @classmethod
     def _short_plain_lines(cls, notes: list[str]) -> list[str]:
         clean = [" ".join(n.split()) for n in notes if n and n.strip()]
-        if any(len(n) > MAX_NOTE_CHARS for n in clean):
-            raise ValueError("a note is too long")
-        return clean
+        # A hint that is too long for the page is dropped. The other hints stay. A cut hint could mislead.
+        return [n for n in clean if len(n) <= MAX_NOTE_CHARS]
 
 
 class Reviewer(Protocol):

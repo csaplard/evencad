@@ -17,7 +17,7 @@ def shaft():
 def test_parse():
     assert parse_review('{"notes": ["  Check   the Ø90 flange. ", ""]}') == ["Check the Ø90 flange."]
     assert parse_review('```json\n{"notes": []}\n```') == []
-    for bad in ["", "no notes", '{"notes": "one"}', '{"notes": ["a","b","c","d"]}', '{"notes": ["' + "x" * (MAX_NOTE_CHARS + 1) + '"]}', '{"notes": [1]}']:
+    for bad in ["", "no notes", '{"notes": "one"}', '{"notes": ["a","b","c","d"]}', '{"notes": [1]}']:
         with pytest.raises(ValueError):
             parse_review(bad)
 
@@ -95,3 +95,10 @@ def test_no_reviewer_means_no_hints(tmp_path):
     st = client.post(f"/session/{sid}/finish").json()
     assert st["finished"] and st["review"] is None
     assert "AI hints" not in client.get(f"/s/{sid}").text
+
+
+def test_a_hint_that_is_too_long_is_dropped_and_the_others_stay():
+    from server.ai.reviewer import MAX_NOTE_CHARS, ReviewResult
+
+    notes = ReviewResult(notes=["Material is not set.", "x" * (MAX_NOTE_CHARS + 1)]).notes
+    assert notes == ["Material is not set."]
