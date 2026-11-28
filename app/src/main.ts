@@ -250,9 +250,10 @@ async function stopListening(byTap = false) {
     return
   }
   console.log(`recorded ${rec.seconds.toFixed(1)} s`)
+  const stats = { ...rec.stats, by_tap: byTap ? '1' : '0' }
   const wav = rec.finish()
   const wasLength = state.guide?.field === 'length'
-  const next = await run('Thinking…', () => sendAudio(state!.id, wav))
+  const next = await run('Thinking…', () => sendAudio(state!.id, wav, stats))
   if (!next || next.error) return // the error stays on the display. The next tap listens again.
   // Quick fix: "no" took the last entry back. Listen for the right value at once.
   if (next.undone) await startListening('Undone. ')

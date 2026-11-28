@@ -73,6 +73,18 @@ def test_audio_goes_through_stt_and_the_interpreter(tmp_path):
     assert st["timing_ms"]["audio_s"] == 1.0 and "stt" in st["timing_ms"] and "interpret" in st["timing_ms"]
 
 
+def test_the_sound_levels_of_the_app_go_into_the_log(tmp_path):
+    client, sid = make(tmp_path, FakeStt())
+    r = client.post(f"/session/{sid}/audio?noise=46&peak=139&speech_at=1.2&frames=80&by_tap=0&other=x", content=pcm_to_wav(ONE_SECOND), headers={"Content-Type": "audio/wav"})
+    assert r.status_code == 200, r.text
+    import json
+
+    log = json.loads((tmp_path / "sessions" / f"{sid}.json").read_text(encoding="utf-8"))["log"]
+    entry = next(e for e in log if e["event"] == "audio")
+    assert entry["heard"] == "diameter thirty, forty long" and entry["audio_s"] == 1.0
+    assert entry["mic"] == {"noise": "46", "peak": "139", "speech_at": "1.2", "frames": "80", "by_tap": "0"}
+
+
 def test_silence_asks_and_changes_nothing(tmp_path):
     client, sid = make(tmp_path, FakeStt(text="  "))
     st = post_wav(client, sid, pcm_to_wav(ONE_SECOND)).json()

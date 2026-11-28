@@ -406,6 +406,9 @@ def create_app(
             except SttError as e:
                 raise HTTPException(status_code=503, detail=str(e)) from e
             timing = {"audio_s": round(len(pcm) / 32000, 1), "stt": round((time.perf_counter() - t0) * 1000)}
+            # Numbers only: how long, how loud, what was heard. The sound itself is never kept.
+            mic = {k: request.query_params[k][:12] for k in ("noise", "peak", "speech_at", "frames", "by_tap") if k in request.query_params}
+            session.record("audio", heard=text.strip()[:500], mic=mic, **timing)
             if not text.strip():
                 return state(session, ask="I did not hear anything", timing_ms=timing)
             return handle_text(session, text.strip()[:500], timing)

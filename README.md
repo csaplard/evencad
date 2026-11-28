@@ -220,6 +220,8 @@ Not tested yet. The planned steps, from the Even Hub docs:
    `VITE_BACKEND_URL=...` and into the `whitelist` in `app/app.json` (full origin, for example
    `https://saycad.example.com`). Plain `http://` works only for a dev server on the same network.
 2. `cd app && npm run dev`, then `npx evenhub qr --url http://<LAN-IP>:5173`.
+   On Windows one command does steps 1 and 2 for a test on the same Wi-Fi:
+   `powershell -ExecutionPolicy Bypass -File scripts\start.ps1 -Glasses`. Not tested on real glasses yet.
 3. In the Even Realities app (developer mode), open Even Hub and scan the QR code.
 4. Package for upload: `npm run pack` makes an `.ehpk` file.
 

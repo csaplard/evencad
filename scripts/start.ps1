@@ -2,7 +2,9 @@
 #   powershell -ExecutionPolicy Bypass -File scripts\start.ps1
 # Options:  -NoSimulator   only the backend and the app dev server
 #           -Docker        run the backend in Docker instead of a local Python
-param([switch]$NoSimulator, [switch]$Docker)
+#           -Glasses       real G2: no simulator. The app talks to this PC over Wi-Fi and a QR code is shown.
+#           -Ip <address>  the Wi-Fi address of this PC, if the script picks the wrong one
+param([switch]$NoSimulator, [switch]$Docker, [switch]$Glasses, [string]$Ip)
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
@@ -34,6 +36,18 @@ foreach ($port in 8000, 5173, 5174) {
     }
 }
 Get-Process -Name 'evenhub-simulator' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+
+if ($Glasses) {
+    # The phone loads the app from this PC and the app calls the backend on this PC. "localhost" would be the phone.
+    if (-not $Ip) {
+        $all = Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notlike '127.*' -and $_.IPAddress -notlike '169.254.*' } | Select-Object -ExpandProperty IPAddress
+        $Ip = @($all | Where-Object { $_ -like '192.168.*' }) + @($all | Where-Object { $_ -like '10.*' }) + @($all) | Select-Object -First 1
+    }
+    if (-not $Ip) { throw 'No network address found. Give it with -Ip.' }
+    $env:VITE_BACKEND_URL = "http://${Ip}:8000"
+    $NoSimulator = $true
+    Write-Host "Glasses mode. This PC: $Ip. The phone must be on the same Wi-Fi."
+}
 
 $jobs = @()
 try {
@@ -69,6 +83,12 @@ try {
         $jobs += Start-Process -PassThru -NoNewWindow -FilePath 'cmd.exe' -ArgumentList '/c', 'npx evenhub-simulator http://localhost:5173'
         Pop-Location
         Write-Host 'Simulator: started. Click = tap. Speak into the PC microphone, or type in the app page.'
+    }
+    if ($Glasses) {
+        Write-Host "Scan this code in the Even Realities app (developer mode, Even Hub). If Windows asks about the firewall, allow access."
+        Push-Location app
+        cmd /c "npx evenhub qr --url http://${Ip}:5173"
+        Pop-Location
     }
     Write-Host 'Press Ctrl+C to stop everything.'
     while ($true) { Start-Sleep -Seconds 2 }

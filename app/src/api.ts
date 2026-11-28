@@ -77,8 +77,10 @@ export async function fetchState(id: string): Promise<SessionState> {
 }
 
 // One spoken sentence as a WAV file (16 kHz, 16-bit, mono).
-export async function sendAudio(id: string, wav: Uint8Array): Promise<SessionState> {
-  const res = await fetch(`${BACKEND}/session/${id}/audio`, {
+// `stats`: sound level numbers of the recorder, kept in the session log to tune the speech check.
+export async function sendAudio(id: string, wav: Uint8Array, stats: Record<string, string> = {}): Promise<SessionState> {
+  const query = new URLSearchParams(stats).toString()
+  const res = await fetch(`${BACKEND}/session/${id}/audio${query ? '?' + query : ''}`, {
     method: 'POST',
     headers: { 'Content-Type': 'audio/wav', ...auth() },
     body: wav as unknown as BodyInit,
