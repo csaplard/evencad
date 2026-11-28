@@ -3,7 +3,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from server.core.guide import next_step, parse_number
+from server.core.guide import next_step, parse_number, parse_pair
 from server.core.ops import InterpreterResult
 from server.core.spec import Segment, ShaftSpec
 from server.main import create_app
@@ -25,6 +25,7 @@ from server.main import create_app
     ("25 mm", 25),
     ("25mm", 25),
     ("thirty millimeters", 30),
+    ("Fourty.", 40),
 ])
 def test_bare_numbers(text, value):
     assert parse_number(text, "diameter") == value
@@ -157,3 +158,43 @@ def test_no_guide_when_finished(client, sid):
     say(client, sid, "forty")
     st = client.post(f"/session/{sid}/finish").json()
     assert st["finished"] and st["guide"] is None
+
+
+# ── two numbers in one sentence ──────────────────────────────────────────────
+@pytest.mark.parametrize("text, pair", [
+    ("20, and 30.", (20, 30)),
+    ("Fourty and fifty.", (40, 50)),
+    ("thirty by forty", (30, 40)),
+    ("30 x 40", (30, 40)),
+    ("25.5 times 60 mm", (25.5, 60)),
+    ("diameter thirty and forty long", (30, 40)),
+    ("one hundred and twenty and sixty", (120, 60)),
+    ("harminc és negyven", (30, 40)),
+    ("huszonöt és fél és hatvan", (25.5, 60)),
+])
+def test_two_numbers_with_a_joining_word(text, pair):
+    assert parse_pair(text) == pair
+
+
+@pytest.mark.parametrize("text", [
+    "", "thirty", "thirty forty", "30 40", "one hundred and twenty", "huszonöt és fél", "20 and 30?",
+    "20 and 30 and 40", "make it 20 and 30", "20 and", "and 30", "length 20 and 30", "25 or 35",
+])
+def test_no_pair_without_a_clear_joining_word(text):
+    assert parse_pair(text) is None
+
+
+def test_a_pair_makes_a_segment_in_one_sentence(client, sid, tmp_path):
+    st = say(client, sid, "20, and 30.")
+    assert dims(st) == [(20, 30)] and st["ask"] is None and st["heard"] == "20, and 30."
+    assert st["guide"]["text"] == "Next: segment 2 diameter?"
+    assert dims(say(client, sid, "Fourty and fifty.")) == [(20, 30), (40, 50)]
+    st = client.post(f"/session/{sid}/undo").json()
+    assert dims(st) == [(20, 30)] and st["guide"]["text"] == "Next: segment 2 diameter?"
+
+
+def test_a_pair_is_not_taken_when_a_length_is_asked(client, sid):
+    say(client, sid, "30")
+    with pytest.raises(KeyError):  # the display asks for a length: two numbers go to the model (the fake has no answer)
+        say(client, sid, "20 and 30")
+    assert dims(client.get(f"/session/{sid}/spec").json()) == []

@@ -29,7 +29,7 @@ from server.ai.reviewer import Reviewer, get_reviewer
 from server.ai.interpreter import Interpreter, InterpreterError, get_interpreter
 from server.ai.stt import MAX_WAV_BYTES, AudioError, SttError, SttProvider, get_stt, wav_to_pcm
 from server.core.mass import mass
-from server.core.guide import is_rejection, is_undo, next_step, parse_number
+from server.core.guide import is_rejection, is_undo, next_step, parse_number, parse_pair
 from server.core.ops import AddSegment, Finish, OpError, Undo, active_after, apply_ops
 from server.core.readback import readback
 from server.core.validation import validate
@@ -437,6 +437,10 @@ def create_app(
         asked = awaiting if awaiting and awaiting["kind"] == "ask" else None
         # After a question a bare number is the answer to that question, not the next diameter.
         number = None if session.finished or asked else parse_number(text, field)
+        # "20 and 30" when a diameter is asked: diameter and length in one sentence. No model call.
+        pair = parse_pair(text) if number is None and field == "diameter" and not (session.finished or asked) else None
+        if pair:
+            session.pending_diameter, number, field = pair[0], pair[1], "length"
         if number is not None:
             extra = {"heard": text, "timing_ms": {**timing, "interpret": 0}}
             if field == "diameter":
@@ -448,6 +452,8 @@ def create_app(
                 try:
                     new_spec = apply_ops(session.spec, [op])
                 except OpError as e:
+                    if pair:
+                        session.pending_diameter = None  # the whole sentence is refused, not half of it
                     session.record("rejected", utterance=text, ops=ops_json, reason=str(e), source="guide")
                     store.save(session)
                     return state(session, error=str(e), **extra)

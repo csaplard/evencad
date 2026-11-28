@@ -69,6 +69,22 @@ def wav_to_pcm(data: bytes) -> bytes:
     return pcm
 
 
+# A quiet microphone (a laptop microphone array gave peaks near 1 % of full scale) makes the speech check
+# of the recogniser drop real speech. The recording is made louder first. Near silence stays as it is.
+QUIET_PEAK = 0.25  # below this the recording is made louder
+SILENT_PEAK = 0.002  # below this there is nothing to make louder
+TARGET_PEAK = 0.5
+MAX_GAIN = 40.0
+
+
+def louder(audio):
+    """`audio`: float samples in -1..1. Returns it louder if it is quiet, else the same array."""
+    peak = float(abs(audio).max()) if len(audio) else 0.0
+    if not SILENT_PEAK <= peak < QUIET_PEAK:
+        return audio
+    return audio * min(TARGET_PEAK / peak, MAX_GAIN)
+
+
 class FasterWhisperStt:
     """Whisper on the server (CPU is enough for short phrases). The model loads on first use."""
 
@@ -93,7 +109,7 @@ class FasterWhisperStt:
     def transcribe(self, pcm: bytes) -> str:
         import numpy as np
 
-        audio = np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
+        audio = louder(np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0)
         prompt = DOMAIN_PROMPTS.get(self.language)
         try:
             segments, _info = self._load().transcribe(

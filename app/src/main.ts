@@ -257,7 +257,8 @@ async function stopListening(byTap = false) {
   // Quick fix: "no" took the last entry back. Listen for the right value at once.
   if (next.undone) await startListening('Undone. ')
   // The model asked a question: listen for the answer at once.
-  else if (next.ask) await startListening(`? ${next.ask}`.slice(0, 58))
+  // Not after "I did not hear anything" (no heard text): that would listen to the room again and again.
+  else if (next.ask && next.heard) await startListening(`? ${next.ask}`.slice(0, 58))
   // A diameter was just given: listen for its length at once, with no extra tap.
   else if (!wasLength && next.guide?.field === 'length') await startListening()
 }

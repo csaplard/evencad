@@ -24,7 +24,7 @@ _TEENS = {
     "sixteen": 16, "seventeen": 17, "eighteen": 18, "nineteen": 19,
 }
 _TENS = {
-    "twenty": 20, "thirty": 30, "forty": 40, "fifty": 50, "sixty": 60, "seventy": 70, "eighty": 80, "ninety": 90,
+    "twenty": 20, "thirty": 30, "forty": 40, "fourty": 40, "fifty": 50, "sixty": 60, "seventy": 70, "eighty": 80, "ninety": 90,
 }
 _DIGITS = {"zero": "0", "oh": "0", **{word: str(n) for word, n in _UNITS.items()}}
 
@@ -183,6 +183,28 @@ def parse_number(text: str, field: Field) -> Optional[float]:
     else:
         value = _words_to_number(words) or _hungarian_number(words)
     return value if value and value > 0 else None
+
+
+# Words that join a diameter and a length: "20 and 30", "30 by 40", "30 x 40", "harminc és negyven".
+_JOIN = re.compile(r"\s+(?:and|by|x|×|times|es|szer)\s+|\s*×\s*")
+
+
+def parse_pair(text: str) -> Optional[tuple[float, float]]:
+    """(diameter, length), if `text` is only two numbers with a joining word. Else None.
+
+    "one hundred and twenty" is one number, so every place of a joining word is tried.
+    Two numbers with no joining word ("thirty forty") stay a doubt.
+    """
+    s = _no_accents(text.strip().lower())
+    if s.endswith("?") or parse_number(text, "diameter") is not None:
+        return None
+    s = re.sub(r"\s*,\s*(?=(?:and|es)\b)", " ", s.rstrip(".!").strip())  # "20, and 30"
+    found = []
+    for m in _JOIN.finditer(s):
+        diameter, length = parse_number(s[:m.start()], "diameter"), parse_number(s[m.end():], "length")
+        if diameter is not None and length is not None:
+            found.append((diameter, length))
+    return found[0] if len(found) == 1 else None
 
 
 _REJECTIONS = {

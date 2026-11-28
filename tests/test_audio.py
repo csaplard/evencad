@@ -6,7 +6,7 @@ import wave
 import pytest
 from fastapi.testclient import TestClient
 
-from server.ai.stt import AudioError, SttError, pcm_to_wav, wav_to_pcm
+from server.ai.stt import AudioError, SttError, louder, pcm_to_wav, wav_to_pcm
 from server.core.ops import InterpreterResult
 from server.main import create_app
 
@@ -107,3 +107,16 @@ def test_audio_is_never_written_to_disk(tmp_path):
 def test_unknown_session_is_404(tmp_path):
     client, _ = make(tmp_path, FakeStt())
     assert post_wav(client, "s_20261123_ffffff", pcm_to_wav(ONE_SECOND)).status_code == 404
+
+
+def test_a_quiet_recording_is_made_louder():
+    import numpy as np
+
+    quiet = np.array([0.0, 0.01, -0.02, 0.005], dtype=np.float32)
+    assert abs(float(np.abs(louder(quiet)).max()) - 0.5) < 1e-6  # the loudest sample goes to 0.5
+    loud = np.array([0.0, 0.4, -0.3], dtype=np.float32)
+    assert louder(loud) is loud  # loud enough: not touched
+    nothing = np.array([0.0, 0.0005, -0.0003], dtype=np.float32)
+    assert louder(nothing) is nothing  # near silence is not blown up
+    faint = np.array([0.0, 0.004], dtype=np.float32)
+    assert abs(float(louder(faint).max()) - 0.16) < 1e-6  # the gain has a limit: 40 times
