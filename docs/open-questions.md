@@ -2,7 +2,7 @@
 
 Each item has a safe default. We work with the default until we know more.
 
-## Needs an answer from Dániel
+## Needs an answer from the author
 
 1. **App name.** The store rule says the name must not contain "Even". "EvenCAD" breaks this rule.
    Default: `app.json` uses `"name": "ShaftCAD Draft"`. Repo and project name stay EvenCAD for now. Please pick a final name. **Done on Nov 24: the name is SayCAD (see 100).**
@@ -42,14 +42,14 @@ Each item has a safe default. We work with the default until we know more.
 
 ## Added with the API adapter (Nov 23)
 
-26. **Live API run is still open.** The adapter is tested with a fake client and the recorded answers. Needed from Dániel: an `ANTHROPIC_API_KEY` in `.env` (with a spend limit). Then run `INTERPRETER=api pytest -m live` and compare the 14 golden cases and the timing.
+26. **Live API run is still open.** The adapter is tested with a fake client and the recorded answers. Needed from the author: an `ANTHROPIC_API_KEY` in `.env` (with a spend limit). Then run `INTERPRETER=api pytest -m live` and compare the 14 golden cases and the timing.
 27. **No temperature 0.** The spec asks for temperature 0. Current models reject sampling parameters, so none is sent. Stability comes from the strict schema check, thinking off and low effort.
 28. **Plain JSON, not tool use.** The spec suggests tool use for structured output. Both adapters return plain JSON that Pydantic validates, so they stay identical. If the live run shows format errors, switch the API adapter to structured outputs (`output_config.format`).
 29. **Model choice.** Default `claude-haiku-5-5` for speed and cost. If it guesses instead of asking in the live golden run, try `claude-sonnet-5-5` through `CLAUDE_MODEL`.
 
 ## Added with Google Drive (Nov 23)
 
-30. **Real Drive run is still open.** The upload is tested with a fake Drive service. Needed from Dániel: a Google Cloud OAuth client (Desktop app) and one sign-in with `python -m tools.drive_auth` (README, "Google Drive").
+30. **Real Drive run is still open.** The upload is tested with a fake Drive service. Needed from the author: a Google Cloud OAuth client (Desktop app) and one sign-in with `python -m tools.drive_auth` (README, "Google Drive").
 31. **OAuth test mode.** While the consent screen is in "Testing", Google ends the sign-in after 7 days. Sign in again close to the demo, or publish the consent screen.
 32. **One account for everyone.** The backend uses one Google account. Per-user Drive sign-in through a pairing page is part of "Path to launch", not of the hackathon build.
 33. **Upload time.** The upload runs inside `finish`, so `finish` gets slower by the upload time. It is logged (`drive_upload` in the session log). Move it to the background if it is slow on the real account.
@@ -86,14 +86,14 @@ Each item has a safe default. We work with the default until we know more.
 
 ## Added with the keyway (Nov 23)
 
-52. **Check the keyway table.** `server/core/keyway.py` holds b, h and t1 for shaft diameters over 6 up to 230 mm (DIN 6885-1, form A). The values were typed from memory of the standard, not copied from a licensed copy. Dániel: compare each row with your copy before the demo.
+52. **Check the keyway table.** `server/core/keyway.py` holds b, h and t1 for shaft diameters over 6 up to 230 mm (DIN 6885-1, form A). The values were typed from memory of the standard, not copied from a licensed copy. the author: compare each row with your copy before the demo.
 53. **One keyway per segment, centred, on top.** There is no position along the segment and no angle. The drawing note says "centred". Add an offset only if the demo needs it.
 54. **No keyway dimensions as DIMENSION entities.** The sheet has a text note with width, length and depth. There is no section view that shows the depth.
 55. **Tolerances are not on the drawing.** The standard also gives fits for the width (P9, N9). They are not shown.
 
 ## Added with the mass (Nov 23)
 
-56. **Density table.** `server/core/mass.py` has ten material families with handbook densities. The name match is by pattern ("C45", "1.4301", "6082", "CuZn39Pb3"). Dániel: check the values and add the materials you use. An unknown name gives no mass, never a guess.
+56. **Density table.** `server/core/mass.py` has ten material families with handbook densities. The name match is by pattern ("C45", "1.4301", "6082", "CuZn39Pb3"). the author: check the values and add the materials you use. An unknown name gives no mass, never a guess.
 57. **The mass is an estimate.** The volume formula agrees with the CAD model within 0.2 % in the tests (the round keyway ends are approximated). The title block says "estimate".
 
 ## Added with revisions (Nov 23)
@@ -166,14 +166,14 @@ A second agent reviewed the code of the day. It found 14 issues. All are fixed, 
 
 ## Added on Nov 24: new name
 
-100. **The project is now called SayCAD.** Dániel chose it. Everything was renamed: the app name in `app.json`, the package id (`com.csaplard.saycad`), the display texts, the spec file (`SAYCAD_SPEC.md`), the docs and the GitHub repository. Older entries in this file still say "EvenCAD"; they are history.
+100. **The project is now called SayCAD.** The author chose it. Everything was renamed: the app name in `app.json`, the package id (`com.csaplard.saycad`), the display texts, the spec file (`SAYCAD_SPEC.md`), the docs and the GitHub repository. Older entries in this file still say "EvenCAD"; they are history.
 101. **The name was not checked against trademarks.** One quick web search found no product called SayCAD. That is not a legal check.
 102. **The Google Drive folder of the dev account is still called "EvenCAD drawings".** It works, because the server uses the folder id. New installs get "SayCAD drawings". Rename the old folder by hand if it will be in the video.
 103. **The variable `EVENCAD_SKIP_DOTENV` is now `SAYCAD_SKIP_DOTENV`.** Only tests and scripts use it.
 
 ## Added on Nov 24: first try with a human voice
 
-104. **An old `ANTHROPIC_API_KEY` in the Windows user variables beat the key in `.env`.** The first spoken test ended with "Anthropic API key is missing or not valid". Now a value in `.env` wins, and the log names what was replaced. The old Windows variable is still there; Dániel can delete it.
+104. **An old `ANTHROPIC_API_KEY` in the Windows user variables beat the key in `.env`.** The first spoken test ended with "Anthropic API key is missing or not valid". Now a value in `.env` wins, and the log names what was replaced. The old Windows variable is still there; the author can delete it.
 105. **"Thirty." was understood from a human voice** and taken without the model. The next spoken entry went to the model and hit the key error, so what was heard is not known: a failed model call does not log the heard text.
 
 ## Added on Nov 28: the app did not hear the laptop microphone
@@ -186,4 +186,4 @@ A second agent reviewed the code of the day. It found 14 issues. All are fixed, 
 111. **Fourth voice try (Nov 28): three sentences in 90 seconds.** The server heard them nearly right ("Diameter thirty, length fifty."), but the app was slow to notice speech and its end. The noise level in the app was a plain minimum; one silent frame made every later frame "speech", so the recording ran to the 20 s limit. Now the noise level is the quietest tenth of the last 4 seconds. Checked with made-up levels only (8 cases). Each recording now writes its level numbers (noise, peak, first speech second, length, heard text) into the session log. No sound is kept.
 112. **`start.ps1 -Glasses`** sets the backend address to the Wi-Fi address of the PC and shows the QR code. Not tested on real G2. Open: does the QR dev mode enforce the `whitelist` of `app.json` (it has only `http://localhost:8000`)?
 113. **Demo video made by tools (Nov 28).** `tools/demo_record.py` sends 15 spoken lines (computer voice, ElevenLabs) through the real server; `tools/demo_video.py` draws the video from the answers. With `base.en` all 15 lines were heard right, about 1 s for a number and about 2 s for a sentence (speech to text plus Claude). `small.en` heard the same and took about 3 s. The video is not a recording of the glasses or of the simulator, and it says so. Each recording run uploads two revisions to the Drive folder: test folders pile up there.
-114. **Demo video, second cut (Nov 28).** The voice is now an AI voice made from the voice of Dániel (ElevenLabs). One of 15 lines was heard wrong with it ("diameter ninety, ten long" became "ninety-ten long", and the model asked back); the line was said again as "Diameter ninety, length ten." A turning 3D model made from `revA.step` was added. The small line at the bottom of the video was taken out at the wish of Dániel; the notes about what is real are in `demo/README.md` and on the end card.
+114. **Demo video, second cut (Nov 28).** The voice is now an AI voice made from the voice of the author (ElevenLabs). One of 15 lines was heard wrong with it ("diameter ninety, ten long" became "ninety-ten long", and the model asked back); the line was said again as "Diameter ninety, length ten." A turning 3D model made from `revA.step` was added. The small line at the bottom of the video was taken out at the wish of the author; the notes about what is real are in `demo/README.md` and on the end card.

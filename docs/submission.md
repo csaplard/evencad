@@ -92,7 +92,7 @@ Only the written specification existed before Nov 23. All code was written betwe
 
 Change the text if one of these is still open on the day:
 
-- [x] A demo video exists (Nov 28): a real run of the pipeline with an AI voice (made from the voice of the author). The end card says so.
+- [x] A demo video exists (Nov 28): a real run of the pipeline with an AI voice (made from the voice of the author). The repository says so (demo/README.md).
 - [ ] The demo video is recorded with a person speaking, and the link is in the README and above.
 - [ ] The app ran on real G2 glasses. If not, write "tested in the Even Hub simulator" in the short description.
 - [x] The real Anthropic API was used (Nov 24: 117 of 117 test calls right, about 0.5 s per call).

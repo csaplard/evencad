@@ -25,4 +25,5 @@ python -m tools.demo_model3d  # draws the STEP file of the run as a turning 3D m
 python -m tools.demo_video    # builds demo/saycad-demo.mp4 from demo/run/
 ```
 
-`demo/audio/c*.mp3` are the commands, `n*.mp3` is the narration. The texts are in `tools/demo_record.py` and `tools/demo_video.py`.
+The sound files are not in the repository, because they hold the voice of a person. Put your own files into `demo/audio/`:
+`c01.mp3` ... `c15.mp3` are the commands, `n01.mp3` ... `n13.mp3` is the narration. The texts are in `tools/demo_record.py` and `tools/demo_video.py`.

@@ -589,7 +589,6 @@ def build() -> Timeline:
         img.paste(Image.merge("RGB", [big.point(lambda v, c=c: v * c // 255) for c in GREEN]), (240, 480))
         d.text((W // 2, 890), "Hands busy. Phone in the pocket.", font=F_H2, fill=WHITE, anchor="mm")
         d.text((W // 2, 965), "github.com/csaplard/saycad  ·  Even Realities hackathon, track 04: AI Assistants & Work", font=F_SMALL, fill=DIM, anchor="mm")
-        d.text((W // 2, 1020), "Recorded from a real run of the SayCAD server. Voice: AI voice of the author.", font=font(22), fill=(110, 126, 118), anchor="mm")
         return img
 
     tl.add(seconds("n12") + 2.0, draw_end, fade=True, play="n12")

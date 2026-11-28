@@ -4,7 +4,7 @@ This is the plan for the demo video. It is also the acceptance test (`SAYCAD_SPE
 The part is made up. No real production data.
 
 Status on Nov 24: every step below works in the simulator with typed text.
-Steps with voice, the Anthropic API, Google Drive and real G2 still need a run by Dániel (see "Before recording").
+Steps with voice, the Anthropic API, Google Drive and real G2 still need a run by the author (see "Before recording").
 
 ## The part
 

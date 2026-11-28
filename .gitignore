@@ -31,3 +31,4 @@ demo/run/
 demo/audio/*.wav
 demo/audio/hq/
 demo/audio/16k/
+demo/audio/
