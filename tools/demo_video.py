@@ -484,11 +484,28 @@ def build() -> Timeline:
     model = sorted((RUN / "model").glob("m*.png"))
     if model:
         d13 = seconds("n13")
-        hold = d13 + 1.6
+        hold = d13 + 2.4
         cache: dict[int, Image.Image] = {}
 
+        fusion_path = ROOT / "demo" / "fusion" / "fusion-view.png"
+        turn = d13 * 0.6 if fusion_path.exists() else hold  # then the same file in a CAD program
+        fusion_frame = None
+        if fusion_path.exists():
+            # A screenshot: the STEP file of the run, opened by hand in Autodesk Fusion. Nothing was changed in it.
+            shot = Image.open(fusion_path).convert("RGB")
+            shot = shot.resize((1640, int(shot.height * 1640 / shot.width)), Image.LANCZOS)
+            fusion_frame = frame_plain("5 · The STEP file")
+            fd = ImageDraw.Draw(fusion_frame)
+            fd.text((W - 60, 30), "the same file, opened in Autodesk Fusion", font=F_SMALL, fill=DIM, anchor="ra")
+            fd.rectangle([136, 76, 144 + shot.width, 84 + shot.height], fill=(70, 80, 75))
+            fusion_frame.paste(shot, (140, 80))
+
         def draw_model(t: float) -> Image.Image:
-            i = min(len(model) - 1, int(t / hold * len(model)))
+            if fusion_frame is not None and t >= turn:
+                out = fusion_frame.copy()
+                strip_sub_at(out, sub_at("n13", min(t, d13 - 0.01)), 1000)
+                return out
+            i = min(len(model) - 1, int(t / turn * len(model)))
             if i not in cache:
                 cache.clear()
                 img = Image.open(model[i]).convert("RGB")

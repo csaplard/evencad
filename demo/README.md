@@ -14,6 +14,7 @@
 - The frame around the display is drawn by `tools/demo_video.py`. It uses the layout of the app (status line, drawing, info lines). It is not a recording of the glasses or of the simulator.
 - The waits are cut short. The real times are on the screen.
 - The turning 3D model is drawn by `tools/demo_model3d.py` from the STEP file of the run (`revA.step`). It is not a screen recording of a CAD program.
+- The Autodesk Fusion picture is a screenshot (`fusion/fusion-view.png`): the same STEP file (`fusion/saycad-shaft-revA.step`), opened by hand in Fusion. Nothing was changed in the model.
 - The app was not tested on real G2 glasses yet. The video does not show glasses, and it does not say this on screen; the README does.
 
 ## Make it again

@@ -84,7 +84,7 @@ Only the written specification existed before Nov 23. All code was written betwe
 ## Links
 
 - Code: https://github.com/csaplard/saycad
-- Demo video: `demo/saycad-demo.mp4` in the repository (2:55). Upload it to the video site the form asks for and put the link here.
+- Demo video: `demo/saycad-demo.mp4` in the repository (2:56). Upload it to the video site the form asks for and put the link here.
   Say in the form: "The video shows one real run of the pipeline. The voice is an AI voice made from my own voice. Tested in the Even Hub simulator, not on G2 hardware yet."
 - Package: (add the `.ehpk` file or its link, if the form asks for it)
 
