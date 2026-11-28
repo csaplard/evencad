@@ -10,9 +10,9 @@ When you say "finish", a STEP model, a DXF and a PDF drawing are ready on your p
 
 ![The shaft grows on the glasses as you speak](docs/img/active-segment.png)
 
-**Demo video:** not recorded yet. The plan is in [docs/demo-script.md](docs/demo-script.md).
+**Demo video:** [demo/saycad-demo.mp4](demo/saycad-demo.mp4) (2:48). It shows one real run of the pipeline. The voices in it are computer voices, and the display is drawn from the answers of the server: see [demo/README.md](demo/README.md). A video with a person and real glasses is not made yet; the plan for it is in [docs/demo-script.md](docs/demo-script.md).
 
-**Status (Nov 24): the full flow works in the simulator.** The interpreter runs on the real Anthropic API and the files go to a real Google Drive. Not tested yet: real G2 glasses, a human voice. See [Known limits](#known-limits).
+**Status (Nov 28): the full flow works in the simulator.** The interpreter runs on the real Anthropic API and the files go to a real Google Drive. Spoken commands work end to end with a clear (computer) voice: 15 of 15 lines of the demo were heard right. A first try with a human voice on a laptop microphone was hard: quiet sound and a Hungarian accent gave wrong words. Not tested yet: real G2 glasses. See [Known limits](#known-limits).
 
 Built for the "Heads Up: Even Realities Hackathon" (Nov 23–29, 2026).
 Track: **04 · AI Assistants & Work**.

@@ -25,3 +25,9 @@ data/
 .DS_Store
 Thumbs.db
 .claude/
+
+# demo video: the recorded run and the converted sound files are made again by the tools
+demo/run/
+demo/audio/*.wav
+demo/audio/hq/
+demo/audio/16k/

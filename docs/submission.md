@@ -84,14 +84,16 @@ Only the written specification existed before Nov 23. All code was written betwe
 ## Links
 
 - Code: https://github.com/csaplard/saycad
-- Demo video: (add the link)
+- Demo video: `demo/saycad-demo.mp4` in the repository (2:48). Upload it to the video site the form asks for and put the link here.
+  Say in the form: "The video shows one real run of the pipeline. The voices are computer voices. Tested in the Even Hub simulator, not on G2 hardware yet."
 - Package: (add the `.ehpk` file or its link, if the form asks for it)
 
 ## Check before you paste
 
 Change the text if one of these is still open on the day:
 
-- [ ] The demo video is recorded with real speech, and the link is in the README and above.
+- [x] A demo video exists (Nov 28): a real run of the pipeline with computer voices. It says so on screen.
+- [ ] The demo video is recorded with a person speaking, and the link is in the README and above.
 - [ ] The app ran on real G2 glasses. If not, write "tested in the Even Hub simulator" in the short description.
 - [x] The real Anthropic API was used (Nov 24: 117 of 117 test calls right, about 0.5 s per call).
 - [x] Google Drive upload ran with a real account (Nov 24).
