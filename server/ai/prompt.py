@@ -61,6 +61,9 @@ Rules:
 - Several clear changes in one sentence give several operations, in spoken order.
 - The text may have this form: first sentence [you asked: your question] answer.
   Then the answer completes the first sentence. Use both parts. If it is still not clear, ask again.
+  But if the answer is a new command by itself ("finish", "we are done", "undo", "add a segment 30 by 40"),
+  do only that command. Forget the first sentence and your question.
+- "Done", "we are done", "that is all", "ready", "save it" mean finish.
 - The sentence may be in Hungarian. Understand it the same way and use the same operations.
   Words: átmérő = diameter, hossz / hosszú = length, szakasz = segment, váll / lépcső = step, letörés = chamfer,
   lekerekítés / rádiusz = fillet, beszúrás / alászúrás = undercut, reteszhorony = keyway, illesztés = fit,

@@ -19,6 +19,22 @@ function Wait-Url($url, $seconds) {
 if (-not (Test-Tool 'node')) { throw 'Node.js is missing. Install Node.js 22 LTS.' }
 if (-not (Test-Path '.env')) { Copy-Item '.env.example' '.env'; Write-Host 'Created .env from .env.example. Add ANTHROPIC_API_KEY to it.' }
 
+# An older run that was not stopped keeps the ports. Then the new backend cannot start and the old code answers.
+# Stop an old python or node on our ports. Anything else on a port is not ours: stop with a clear message.
+foreach ($port in 8000, 5173, 5174) {
+    $owners = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique
+    foreach ($id in $owners) {
+        $p = Get-Process -Id $id -ErrorAction SilentlyContinue
+        if (-not $p) { continue }
+        if ($p.ProcessName -in 'python', 'node') {
+            Write-Host "Port ${port}: stopping an older run ($($p.ProcessName), process $id)."
+            taskkill /PID $id /T /F 2>$null | Out-Null
+        }
+        elseif ($port -ne 5174) { throw "Port $port is used by $($p.ProcessName) (process $id). Close it first." }
+    }
+}
+Get-Process -Name 'evenhub-simulator' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+
 $jobs = @()
 try {
     if ($Docker) {
