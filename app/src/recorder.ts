@@ -6,19 +6,30 @@ const SAMPLE_RATE = 16000
 const BYTES_PER_SECOND = SAMPLE_RATE * 2
 const MAX_SECONDS = 20 // hard stop
 const SILENCE_SECONDS = 1.5 // stop this long after the speech ends
-const SPEECH_LEVEL = 700 // RMS of int16 samples that counts as speech
+// Speech level (RMS of int16 samples). Microphones differ a lot, so the level follows the room noise:
+// a frame is speech when it is 3 times louder than the quiet frames. A laptop microphone array gave
+// speech far below 700, and the old fixed level never heard it.
+const LOUD_LEVEL = 700 // always speech
+const MIN_LEVEL = 60 // never speech below this
+const OVER_NOISE = 3
 
 export class Recorder {
   private chunks: Uint8Array[] = []
   private bytes = 0
   private heardSpeech = false
   private quietBytes = 0
+  private noise = -1 // level of the quiet frames. -1 = no frame yet
+  private peak = 0
 
   /** Add one frame. Returns true when the recording should stop by itself. */
   add(pcm: Uint8Array): boolean {
     this.chunks.push(pcm)
     this.bytes += pcm.length
-    if (rms(pcm) >= SPEECH_LEVEL) {
+    const level = rms(pcm)
+    this.peak = Math.max(this.peak, level)
+    // The noise level falls at once and rises slowly, so a spoken word does not lift it.
+    this.noise = this.noise < 0 || level < this.noise ? level : this.noise + (level - this.noise) * 0.01
+    if (level >= LOUD_LEVEL || level >= Math.max(MIN_LEVEL, this.noise * OVER_NOISE)) {
       this.heardSpeech = true
       this.quietBytes = 0
     } else {
@@ -34,6 +45,11 @@ export class Recorder {
 
   get hasSpeech(): boolean {
     return this.heardSpeech
+  }
+
+  /** The loudest frame so far. Shown when nothing was heard, to help with a quiet microphone. */
+  get peakLevel(): number {
+    return Math.round(this.peak)
   }
 
   /** Build the WAV and forget the frames. */

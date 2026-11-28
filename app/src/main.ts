@@ -238,13 +238,15 @@ async function startListening(prefix = '') {
   setText(STATUS, prefix.startsWith('?') ? prefix : prefix + waiting)
 }
 
-async function stopListening() {
+async function stopListening(byTap = false) {
   const rec = recorder
   if (!rec || !state) return
   recorder = null
   await bridge.audioControl(false)
-  if (!rec.hasSpeech) {
-    setText(STATUS, '? I did not hear anything')
+  // A tap says "I spoke": send the recording even if the level check heard no speech.
+  // The server has its own speech check.
+  if (!rec.hasSpeech && !(byTap && rec.seconds >= 0.5)) {
+    setText(STATUS, `? I did not hear anything (mic level ${rec.peakLevel})`)
     return
   }
   console.log(`recorded ${rec.seconds.toFixed(1)} s`)
@@ -273,7 +275,7 @@ async function undoAndListen() {
 
 function onTap() {
   if (state?.needs_confirm) run('Finishing…', () => finish(state!.id, true))
-  else if (recorder) stopListening()
+  else if (recorder) stopListening(true)
   else startListening()
 }
 

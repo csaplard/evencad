@@ -175,3 +175,8 @@ A second agent reviewed the code of the day. It found 14 issues. All are fixed, 
 
 104. **An old `ANTHROPIC_API_KEY` in the Windows user variables beat the key in `.env`.** The first spoken test ended with "Anthropic API key is missing or not valid". Now a value in `.env` wins, and the log names what was replaced. The old Windows variable is still there; Dániel can delete it.
 105. **"Thirty." was understood from a human voice** and taken without the model. The next spoken entry went to the model and hit the key error, so what was heard is not known: a failed model call does not log the heard text.
+
+## Added on Nov 28: the app did not hear the laptop microphone
+
+106. **The fixed speech level (RMS 700) was too high for a laptop microphone array.** The app waited and showed nothing, or "I did not hear anything". Now the level follows the room noise (speech = 3 times louder than the quiet frames). A tap to stop always sends the recording, and the server checks for speech. "I did not hear anything" now shows the loudest level. Not tested with a human voice after the change. The level of the real G2 microphone is not known.
+107. **"Thirty, thirty." (the same number two times) goes to the model**, and the model asks "Diameter and length? One segment at a time." This is correct, but it came from a repeat, because the app did not react to the first word.
