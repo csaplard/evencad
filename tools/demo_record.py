@@ -5,7 +5,7 @@ Run from the repo root:  python -m tools.demo_record
 It starts the real server (Whisper, Claude, CadQuery, Google Drive from `.env`) on port 8010 and
 sends the spoken lines of `demo/audio/c*.wav` to `/session/{id}/audio`, one by one. Nothing is faked:
 every text, drawing and file in `demo/run/` is what the server answered. The lines are spoken by a
-computer voice (text to speech), not by a person. `tools/demo_video.py` builds the video from the result.
+computer voice (text to speech: an AI voice made from the voice of the author), not live by a person. `tools/demo_video.py` builds the video from the result.
 Needs one extra package to read the mp3 files:  pip install imageio-ffmpeg
 Each run uploads two revisions to the Google Drive folder of `.env`, if Drive is set up.
 """
@@ -46,7 +46,7 @@ STEPS = [
     ("say", "c11", "Material C forty five."),
     ("view", "30", ""),
     ("view", "60", ""),
-    ("say", "c12", "Add a segment, diameter ninety, ten long."),
+    ("say", "c12", "Add a segment. Diameter ninety, length ten."),
     ("say", "c13", "Undo."),
     ("say", "c14", "Finish."),
     ("drive", "", ""),

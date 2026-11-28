@@ -63,6 +63,7 @@ NARRATION = {
     "n10": "Every drawing is a draft. The AI never approves. A person does. And any change makes it a draft again.",
     "n11": "Speech becomes text on our own server. Claude turns the text into operations. Code checks them. Code draws. Audio is never stored.",
     "n12": "SayCAD. From the part in your hand, to a drawing. Hands busy. Phone in the pocket.",
+    "n13": "And this is the STEP file. A real 3D model, with the keyway, ready for any CAD program.",
 }
 
 
@@ -127,7 +128,6 @@ def base() -> Image.Image:
 
 
 BASE = base()
-FOOT = "Real run of the SayCAD pipeline · commands spoken by a computer voice · waits cut short, real times shown · not tested on G2 hardware yet"
 
 
 def frame_plain(title: str) -> Image.Image:
@@ -136,7 +136,6 @@ def frame_plain(title: str) -> Image.Image:
     d = ImageDraw.Draw(img)
     d.text((60, 28), "SayCAD", font=F_CHIP, fill=GREEN)
     d.text((190, 30), title, font=F_SMALL, fill=DIM)
-    d.text((W // 2, H - 26), FOOT, font=font(20), fill=(88, 104, 96), anchor="mm")
     return img
 
 
@@ -149,7 +148,6 @@ def frame_live(title: str) -> Image.Image:
     d.text((60, 28), "SayCAD", font=F_CHIP, fill=GREEN)
     d.text((190, 30), title, font=F_SMALL, fill=DIM)
     d.text((W - 60, 30), "what the glasses show", font=F_SMALL, fill=DIM, anchor="ra")
-    d.text((W // 2, H - 26), FOOT, font=font(20), fill=(88, 104, 96), anchor="mm")
     return img
 
 
@@ -482,6 +480,30 @@ def build() -> Timeline:
 
     tl.add(seconds("n09") + 0.5, draw_files, fade=True, play="n09")
 
+    # ── 4b. the STEP file as a turning 3D model (pictures from tools/demo_model3d.py) ──
+    model = sorted((RUN / "model").glob("m*.png"))
+    if model:
+        d13 = seconds("n13")
+        hold = d13 + 1.6
+        cache: dict[int, Image.Image] = {}
+
+        def draw_model(t: float) -> Image.Image:
+            i = min(len(model) - 1, int(t / hold * len(model)))
+            if i not in cache:
+                cache.clear()
+                img = Image.open(model[i]).convert("RGB")
+                d = ImageDraw.Draw(img)
+                d.text((60, 28), "SayCAD", font=F_CHIP, fill=GREEN)
+                d.text((190, 30), "5 · The STEP file", font=F_SMALL, fill=DIM)
+                d.text((W - 60, 30), "revA.step, as the server wrote it", font=F_SMALL, fill=DIM, anchor="ra")
+                d.text((W // 2, 150), "A solid 3D model, not a picture", font=F_BIG, fill=WHITE, anchor="mm")
+                cache[i] = img
+            out = cache[i].copy()
+            strip_sub_at(out, sub_at("n13", min(t, d13 - 0.01)), 970)
+            return out
+
+        tl.add(hold, draw_model, fade=True, play="n13")
+
     # ── 5. draft, approval, draft again ──
     def title_block(sheet: Image.Image) -> Image.Image:
         w, h = sheet.size
@@ -567,7 +589,7 @@ def build() -> Timeline:
         img.paste(Image.merge("RGB", [big.point(lambda v, c=c: v * c // 255) for c in GREEN]), (240, 480))
         d.text((W // 2, 890), "Hands busy. Phone in the pocket.", font=F_H2, fill=WHITE, anchor="mm")
         d.text((W // 2, 965), "github.com/csaplard/saycad  ·  Even Realities hackathon, track 04: AI Assistants & Work", font=F_SMALL, fill=DIM, anchor="mm")
-        d.text((W // 2, 1020), "Honest note: a computer voice spoke the commands, through the real pipeline. Not tested on G2 hardware yet.", font=font(22), fill=(110, 126, 118), anchor="mm")
+        d.text((W // 2, 1020), "Recorded from a real run of the SayCAD server. Voice: AI voice of the author.", font=font(22), fill=(110, 126, 118), anchor="mm")
         return img
 
     tl.add(seconds("n12") + 2.0, draw_end, fade=True, play="n12")
